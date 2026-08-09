@@ -1,4 +1,4 @@
-# 🎵 GrooveGrab CLI (`groovegrab` / `gg`)
+# 🎵 GrooveGrab CLI (`groovegrab`)
 
 > A modular, high-performance CLI download tool for songs, audio, and videos.
 
@@ -24,7 +24,7 @@ pip install -e .
 groovegrab setup
 
 # Download a song, playlist, or album
-groovegrab get "https://open.spotify.com/playlist/..."
+groovegrab dl "https://open.spotify.com/playlist/..."
 
 # Search songs interactively
 groovegrab search "Blinding Lights - The Weeknd"

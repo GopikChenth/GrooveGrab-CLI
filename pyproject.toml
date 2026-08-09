@@ -45,7 +45,6 @@ dev = [
 
 [project.scripts]
 groovegrab = "groovegrab.main:app"
-gg = "groovegrab.main:app"
 
 [tool.setuptools]
 packages = ["groovegrab"]
