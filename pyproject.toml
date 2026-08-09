@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "groovegrab-cli"
+version = "1.0.0"
+description = "A modular, high-performance CLI download tool for songs, audio, and videos"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "GrooveGrab Developers"}
+]
+keywords = ["download", "music", "audio", "video", "cli", "yt-dlp", "spotify", "jiosaavn", "soundcloud", "youtube"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Environment :: Console",
+    "Topic :: Multimedia :: Sound/Audio",
+]
+
+dependencies = [
+    "typer[all]>=0.9.0",
+    "rich>=13.0.0",
+    "yt-dlp>=2024.0.0",
+    "mutagen>=1.46.0",
+    "spotipy>=2.23.0",
+    "httpx>=0.24.0",
+    "pydantic>=2.0.0",
+    "platformdirs>=3.0.0",
+    "questionary>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[project.scripts]
+groovegrab = "groovegrab.main:app"
+gg = "groovegrab.main:app"
+
+[tool.setuptools]
+packages = ["groovegrab"]
+package-dir = {"" = "src"}
