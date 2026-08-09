@@ -21,6 +21,7 @@ app = typer.Typer(
 )
 
 app.command(name="get", help="Download songs, playlists, or albums")(download_command)
+app.command(name="dl", help="Download songs, playlists, or albums (alias for get)")(download_command)
 app.command(name="search", help="Search songs interactively")(search_command)
 app.command(name="queue", help="View download queue history")(queue_command)
 app.command(name="config", help="Manage configuration settings")(config_command)
