@@ -1,5 +1,5 @@
 """
-Rich Live Terminal Player UI Component
+Rich Full-Screen Live TUI Terminal Player UI Component
 """
 
 import sys
@@ -13,9 +13,7 @@ from typing import List, Optional, Dict
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
-from rich.layout import Layout
 from rich.text import Text
-from rich.style import Style
 
 from groovegrab.core.models import TrackInfo
 from groovegrab.player.audio_driver import AudioDriver
@@ -83,36 +81,9 @@ class NonBlockingInput:
             except Exception:
                 pass
 
-    def get_key(self) -> Optional[str]:
-        try:
-            rlist, _, _ = select.select([sys.stdin], [], [], 0.01)
-            if rlist:
-                ch = sys.stdin.read(1)
-                if ch == '\x1b':  # Escape sequence for arrow keys
-                    rlist2, _, _ = select.select([sys.stdin], [], [], 0.01)
-                    if rlist2:
-                        ch2 = sys.stdin.read(1)
-                        if ch2 == '[':
-                            rlist3, _, _ = select.select([sys.stdin], [], [], 0.01)
-                            if rlist3:
-                                ch3 = sys.stdin.read(1)
-                                if ch3 == 'A':
-                                    return "UP"
-                                elif ch3 == 'B':
-                                    return "DOWN"
-                                elif ch3 == 'C':
-                                    return "RIGHT"
-                                elif ch3 == 'D':
-                                    return "LEFT"
-                    return "ESC"
-                return ch
-        except Exception:
-            pass
-        return None
-
 
 class TerminalPlayer:
-    """Interactive CLI Audio Player with Synced Lyrics & Visualizer."""
+    """Full-Screen TUI Audio Player with Synced Lyrics & Visualizer."""
 
     def __init__(
         self,
@@ -129,7 +100,7 @@ class TerminalPlayer:
         self.driver = AudioDriver()
         self.lrc_parser = LrcParser()
         self.typewriter = TypewriterAnimator()
-        self.visualizer = AudioSpectrumVisualizer(num_bars=36)
+        self.visualizer = AudioSpectrumVisualizer(num_bars=44)
         
         self.lyrics: List[LrcLine] = self.lrc_parser.parse_file(self.lrc_path) if self.lrc_path.exists() else []
 
@@ -139,29 +110,28 @@ class TerminalPlayer:
             return
 
         with NonBlockingInput():
-            with Live(self._build_panel(0.0), console=console, refresh_per_second=20, transient=True) as live:
-                while self.driver.is_busy():
-                    current_time = self.driver.get_position_sec()
-                    live.update(self._build_panel(current_time))
+            with console.screen():
+                with Live(self._build_panel(0.0), console=console, refresh_per_second=20, screen=True) as live:
+                    while self.driver.is_busy():
+                        current_time = self.driver.get_position_sec()
+                        live.update(self._build_panel(current_time))
 
-                    # Process user keyboard input
-                    key = input_handler.get_key() if 'input_handler' in locals() else None
-                    key = self._read_key()
-                    if key:
-                        if key.lower() == 'q' or key == 'ESC':
-                            break
-                        elif key == ' ':
-                            self.driver.toggle_pause()
-                        elif key == 'LEFT':
-                            self.driver.seek_relative(-5.0)
-                        elif key == 'RIGHT':
-                            self.driver.seek_relative(5.0)
-                        elif key == 'UP':
-                            self.driver.change_volume(0.1)
-                        elif key == 'DOWN':
-                            self.driver.change_volume(-0.1)
+                        key = self._read_key()
+                        if key:
+                            if key.lower() == 'q':
+                                break
+                            elif key == ' ':
+                                self.driver.toggle_pause()
+                            elif key == 'LEFT':
+                                self.driver.seek_relative(-5.0)
+                            elif key == 'RIGHT':
+                                self.driver.seek_relative(5.0)
+                            elif key == 'UP':
+                                self.driver.change_volume(0.05)
+                            elif key == 'DOWN':
+                                self.driver.change_volume(-0.05)
 
-                    time.sleep(0.03)
+                        time.sleep(0.03)
 
         self.driver.stop()
         console.print(f"[bold green]✔ Playback finished:[/bold green] [white]{self.track_info.display_name()}[/white]")
@@ -169,25 +139,47 @@ class TerminalPlayer:
     def _read_key(self) -> Optional[str]:
         try:
             rlist, _, _ = select.select([sys.stdin], [], [], 0.005)
-            if rlist:
-                ch = sys.stdin.read(1)
-                if ch == '\x1b':
-                    rlist2, _, _ = select.select([sys.stdin], [], [], 0.005)
-                    if rlist2:
-                        ch2 = sys.stdin.read(1)
-                        if ch2 == '[':
-                            rlist3, _, _ = select.select([sys.stdin], [], [], 0.005)
-                            if rlist3:
-                                ch3 = sys.stdin.read(1)
-                                if ch3 == 'A': return "UP"
-                                elif ch3 == 'B': return "DOWN"
-                                elif ch3 == 'C': return "RIGHT"
-                                elif ch3 == 'D': return "LEFT"
-                    return "ESC"
+            if not rlist:
+                return None
+            
+            ch = sys.stdin.read(1)
+            if ch != '\x1b':
                 return ch
+
+            # Non-blocking read of escape sequence payload
+            seq = ""
+            while True:
+                rlist2, _, _ = select.select([sys.stdin], [], [], 0.005)
+                if not rlist2:
+                    break
+                seq += sys.stdin.read(1)
+                if len(seq) >= 16:
+                    break
+
+            if not seq:
+                # Standalone ESC key press
+                return "ESC"
+
+            # Parse arrow keys and mouse wheel sequences
+            if seq == "[A":
+                return "UP"
+            elif seq == "[B":
+                return "DOWN"
+            elif seq == "[C":
+                return "RIGHT"
+            elif seq == "[D":
+                return "LEFT"
+            elif "<64;" in seq or "Ma" in seq or "[5~" in seq:
+                # Mouse Scroll Up / Page Up -> Increase volume
+                return "UP"
+            elif "<65;" in seq or "Mb" in seq or "[6~" in seq:
+                # Mouse Scroll Down / Page Down -> Decrease volume
+                return "DOWN"
+
+            # Safely ignore all unhandled mouse/terminal sequences without quitting!
+            return None
         except Exception:
-            pass
-        return None
+            return None
 
     def _build_panel(self, current_time: float) -> Panel:
         status_icon = "⏸ PAUSED" if self.driver.is_paused else "▶ PLAYING"
@@ -196,7 +188,7 @@ class TerminalPlayer:
         tot_min, tot_sec = int(total_dur) // 60, int(total_dur) % 60
 
         # Header Info
-        header_str = f"[{self.theme['header']}]🎵 GROOVEGRAB AUDIO PLAYER[/{self.theme['header']}]  [{status_icon}]  Vol: {int(self.driver.volume * 100)}%"
+        header_str = f"[{self.theme['header']}]🎵 GROOVEGRAB TUI PLAYER[/{self.theme['header']}]   [{status_icon}]   Vol: {int(self.driver.volume * 100)}%"
         track_str = f"[bold white]{self.track_info.title}[/bold white] - [cyan]{self.track_info.artist}[/cyan]"
         time_str = f"[{self.theme['bar']}][▶ {curr_min:02d}:{curr_sec:02d} / {tot_min:02d}:{tot_sec:02d}][/{self.theme['bar']}]"
         
@@ -206,15 +198,17 @@ class TerminalPlayer:
         # Synced Karaoke Lyrics Lines
         lyrics_markup = self._render_lyrics_markup(current_time)
 
-        controls_str = "[dim white]Controls: [bold]Space[/bold] Pause/Play | [bold]←/→[/bold] Seek 5s | [bold]↑/↓[/bold] Volume | [bold]Q[/bold] Quit[/dim white]"
+        controls_str = "[dim white]Controls: [bold]Space[/bold] Pause/Play | [bold]←/→[/bold] Seek 5s | [bold]↑/↓ or Scroll[/bold] Volume | [bold]Q[/bold] Quit[/dim white]"
 
-        body_content = f"{header_str}\n{track_str}  {time_str}\n\n{viz_bars}\n\n{lyrics_markup}\n\n{controls_str}"
+        body_content = f"{header_str}\n{track_str}   {time_str}\n\n{viz_bars}\n\n{lyrics_markup}\n\n{controls_str}"
 
         return Panel(
             Text.from_markup(body_content),
+            title="[bold yellow]GrooveGrab Audio TUI[/bold yellow]",
+            subtitle="[bold dim]Press Q to Quit TUI[/bold dim]",
             border_style=self.theme["border"],
-            expand=False,
-            padding=(1, 2)
+            expand=True,
+            padding=(2, 4)
         )
 
     def _render_lyrics_markup(self, current_time: float) -> str:
@@ -226,9 +220,9 @@ class TerminalPlayer:
             if current_time >= line.timestamp_sec:
                 active_idx = idx
 
-        # Render 2 lines above, 1 active line with typewriter, 2 lines below
-        start_idx = max(0, active_idx - 2)
-        end_idx = min(len(self.lyrics), active_idx + 3)
+        # Render 3 lines above, 1 active line with typewriter, 3 lines below
+        start_idx = max(0, active_idx - 3)
+        end_idx = min(len(self.lyrics), active_idx + 4)
 
         lines_output = []
         for idx in range(start_idx, end_idx):
@@ -240,8 +234,8 @@ class TerminalPlayer:
                     active_color=self.theme["active_lyric"],
                     dim_color=self.theme["dim_lyric"]
                 )
-                lines_output.append(f"❯ {rendered}")
+                lines_output.append(f" ❯  {rendered}")
             else:
-                lines_output.append(f"  [{self.theme['dim_lyric']}]{line.text}[/{self.theme['dim_lyric']}]")
+                lines_output.append(f"    [{self.theme['dim_lyric']}]{line.text}[/{self.theme['dim_lyric']}]")
 
         return "\n".join(lines_output)
