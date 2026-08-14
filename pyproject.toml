@@ -50,3 +50,8 @@ groovegrab = "groovegrab.main:app"
 [tool.setuptools]
 packages = ["groovegrab"]
 package-dir = {"" = "src"}
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+

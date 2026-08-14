@@ -13,23 +13,31 @@ from groovegrab.providers.registry import ProviderRegistry
 from groovegrab.queue.task_queue import TaskQueueManager
 from groovegrab.engines.ytdlp_engine import YtDlpEngine
 from groovegrab.player.terminal_player import TerminalPlayer
+from groovegrab.player.visualizer import VisualizerMode
 from groovegrab.ui.banner import print_info, print_error
 
 console = Console()
-app = typer.Typer(help="Play songs with real-time synced lyrics and audio visualizer")
+app = typer.Typer(help="Play songs with real-time CAVA audio visualizer and synced lyrics")
 
 
 @app.callback(invoke_without_command=True)
 def play_command(
     target: str = typer.Argument(..., help="Song title, URL, or local file path to play"),
-    theme: str = typer.Option("groove", "--theme", "-t", help="Player theme (groove, cyberpunk, crimson, matrix)"),
+    theme: str = typer.Option("cava", "--theme", "-t", help="Player theme (cava, cyberpunk, matrix, fire, sunset, ocean, aurora, synthwave, monochrome)"),
+    mode: str = typer.Option("bars", "--mode", "-m", help="Visualizer mode (bars, braille, wave, mirror, particles)"),
 ):
-    """Play songs with real-time synced Karaoke lyrics and ASCII spectrum visualizer."""
+    """Play songs with real-time CAVA TUI audio spectrum visualizer & synced Karaoke lyrics."""
     config_mgr = ConfigManager()
     cfg = config_mgr.get()
 
     local_path = Path(target)
     
+    # Parse initial visualizer mode
+    try:
+        viz_mode = VisualizerMode(mode.lower())
+    except ValueError:
+        viz_mode = VisualizerMode.BARS
+
     # 1. Direct local audio file
     if local_path.exists() and local_path.is_file():
         track_info = TrackInfo(
@@ -37,7 +45,13 @@ def play_command(
             artist=local_path.stem.split(" - ")[0] if " - " in local_path.stem else "Local Artist",
         )
         lrc_path = local_path.with_suffix(".lrc")
-        player = TerminalPlayer(audio_path=local_path, track_info=track_info, lrc_path=lrc_path, theme_name=theme)
+        player = TerminalPlayer(
+            audio_path=local_path,
+            track_info=track_info,
+            lrc_path=lrc_path,
+            theme_name=theme,
+            initial_mode=viz_mode
+        )
         player.start()
         return
 
@@ -79,5 +93,11 @@ def play_command(
         raise typer.Exit(1)
 
     lrc_path = existing_file.with_suffix(".lrc")
-    player = TerminalPlayer(audio_path=existing_file, track_info=track, lrc_path=lrc_path, theme_name=theme)
+    player = TerminalPlayer(
+        audio_path=existing_file,
+        track_info=track,
+        lrc_path=lrc_path,
+        theme_name=theme,
+        initial_mode=viz_mode
+    )
     player.start()
