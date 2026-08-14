@@ -1,6 +1,6 @@
 """
 Universal Cross-Platform Audio Playback Driver & Clock Controller
-Supports Windows, Linux, and macOS with ffplay, mpv, or fallback players.
+Supports ffplay, mpv, paplay, and pygame.mixer for smooth, distortion-free audio playback.
 """
 
 import os
@@ -32,7 +32,8 @@ class AudioDriver:
         self.player_cmd = self._detect_system_player()
 
     def _detect_system_player(self) -> Optional[str]:
-        for cmd in ["ffplay", "mpv", "paplay", "aplay", "afplay"]:
+        # Note: Do NOT include 'aplay' because aplay cannot decode mp3/flac and plays noise!
+        for cmd in ["ffplay", "mpv", "paplay", "vlc", "cvlc"]:
             if shutil.which(cmd):
                 return cmd
         return None
@@ -60,8 +61,10 @@ class AudioDriver:
             if start_offset > 0:
                 cmd.extend([f"--start={start_offset:.2f}"])
             cmd.append(str(file_path))
-        elif self.player_cmd in ["paplay", "aplay", "afplay"]:
-            cmd = [self.player_cmd, str(file_path)]
+        elif self.player_cmd == "paplay":
+            cmd = ["paplay", str(file_path)]
+        elif self.player_cmd in ["vlc", "cvlc"]:
+            cmd = [self.player_cmd, "--intf", "dummy", "--play-and-exit", str(file_path)]
         else:
             cmd = ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", str(file_path)]
 
@@ -75,7 +78,6 @@ class AudioDriver:
             )
             return True
         except Exception:
-            # Fallback to clock-only simulation
             return True
 
     def get_position_sec(self) -> float:
@@ -90,10 +92,8 @@ class AudioDriver:
             return
 
         if self.is_paused:
-            # Resume playback
             curr_pos = self.accumulated_time_sec
             if IS_WINDOWS:
-                # Restart ffplay from current timestamp
                 self._restart_at(curr_pos)
             else:
                 if self.proc and self.proc.poll() is None:
@@ -106,7 +106,6 @@ class AudioDriver:
             self.start_time_sec = time.time()
             self.is_paused = False
         else:
-            # Pause playback
             self.accumulated_time_sec += (time.time() - self.start_time_sec)
             self.is_paused = True
             if IS_WINDOWS:
