@@ -1,7 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Top-left retro typewriter lyric displayer with fast word typing and space pause cadence
+Top-left 2-line typewriter lyric displayer showing only actual typed text + cursor █
 """
 
 import time
@@ -140,7 +140,7 @@ class TerminalPlayer:
         header_str = self._build_header(current_time, term_width, theme)
         header_lines = [l for l in header_str.split("\n") if l]
 
-        # 2. Top Left Synced Karaoke Lyrics Line with Fast Word Typewriter & Cursor █
+        # 2. Top Left 2-Line Synced Karaoke Lyrics (Only actual typed text + cursor █)
         has_lyrics = self.show_lyrics and bool(self.lyrics)
         lyric_time = max(0.0, current_time + self.lyric_offset_sec)
         lyrics_str = self._render_lyrics(lyric_time, theme) if has_lyrics else ""
@@ -190,7 +190,6 @@ class TerminalPlayer:
         tot_min, tot_sec = int(total_dur) // 60, int(total_dur) % 60
         time_str = f"{curr_min:02d}:{curr_sec:02d} / {tot_min:02d}:{tot_sec:02d}"
 
-        # Retro template format: > PLAYING TRACK - Title - Artist
         title = self.track_info.title
         artist = self.track_info.artist
 
@@ -229,11 +228,20 @@ class TerminalPlayer:
             if current_time >= line.timestamp_sec:
                 active_idx = idx
 
+        # Active line: ONLY actual revealed typed text + active cursor █
         active_line = self.lyrics[active_idx]
         rendered_active = self.typewriter.render_active_line(
             active_line,
             current_time,
-            active_color=f"{theme.header}",
-            dim_color=f"dim {theme.header}"
+            active_color=f"{theme.header}"
         )
-        return f" [{theme.header}]>[/{theme.header}] {rendered_active} [{theme.header}]█[/{theme.header}]"
+        
+        line1 = f" [{theme.header}]>[/{theme.header}] {rendered_active} [{theme.header}]█[/{theme.header}]"
+        
+        # Line 2: Next upcoming lyric line preview
+        if active_idx + 1 < len(self.lyrics):
+            next_text = self.lyrics[active_idx + 1].text
+            line2 = f"   [dim {theme.header}]{next_text}[/dim {theme.header}]"
+            return f"{line1}\n{line2}"
+
+        return line1

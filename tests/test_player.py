@@ -25,9 +25,9 @@ def test_typewriter_animator():
     animator = TypewriterAnimator()
     line = LrcLine(timestamp_sec=10.0, end_sec=15.0, text="Hello World")
 
-    # Before start timestamp -> dim
+    # Before start timestamp -> empty string (no dull text preview!)
     rendered_before = animator.render_active_line(line, 5.0)
-    assert "Hello World" in rendered_before
+    assert rendered_before == ""
 
     # Halfway -> partial typewriter text
     rendered_mid = animator.render_active_line(line, 12.5)
