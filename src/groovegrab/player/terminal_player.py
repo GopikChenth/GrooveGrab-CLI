@@ -1,7 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Top-left typewriter lyric displayer with automatic .lrc file search and LRCLIB auto-fetch
+Top-left typewriter lyric displayer with realtime lyric sync offset adjustments
 """
 
 import time
@@ -43,6 +43,7 @@ class TerminalPlayer:
         self.mode = initial_mode
         self.show_lyrics = True
         self.mirror_mode = False
+        self.lyric_offset_sec = 0.0  # Real-time lyric sync offset adjustment
 
         self.driver = AudioDriver()
         self.lrc_parser = LrcParser()
@@ -57,13 +58,11 @@ class TerminalPlayer:
 
     def _resolve_and_load_lyrics(self) -> List[LrcLine]:
         """Resolves local .lrc files or auto-fetches synced lyrics via LRCLIB."""
-        # 1. Exact match with_suffix(".lrc")
         if self.lrc_path and self.lrc_path.exists():
             parsed = self.lrc_parser.parse_file(self.lrc_path)
             if parsed:
                 return parsed
 
-        # 2. Search parent directory for matching .lrc files
         if self.audio_path.parent.exists():
             stem_lower = self.audio_path.stem.lower()
             for lrc_candidate in self.audio_path.parent.glob("*.lrc"):
@@ -73,7 +72,6 @@ class TerminalPlayer:
                         self.lrc_path = lrc_candidate
                         return parsed
 
-        # 3. Auto-fetch online via LRCLIB if not found locally
         fetcher = LyricFetcher()
         synced_text, _ = fetcher.fetch_lyrics(self.track_info)
         if synced_text:
@@ -113,6 +111,12 @@ class TerminalPlayer:
                                 self.driver.change_volume(0.05)
                             elif key in ('DOWN', 'j', '-'):
                                 self.driver.change_volume(-0.05)
+                            elif key in (',', '<'):
+                                # Shift lyrics 0.5s earlier
+                                self.lyric_offset_sec -= 0.5
+                            elif key in ('.', '>'):
+                                # Shift lyrics 0.5s later
+                                self.lyric_offset_sec += 0.5
                             elif key.lower() == 'm':
                                 self.driver.toggle_mute()
                             elif key.lower() == 'v':
@@ -140,7 +144,8 @@ class TerminalPlayer:
 
         # 2. Top Left Synced Karaoke Lyrics Line with Typewriter & Cursor █
         has_lyrics = self.show_lyrics and bool(self.lyrics)
-        lyrics_str = self._render_lyrics(current_time, theme) if has_lyrics else ""
+        lyric_time = max(0.0, current_time + self.lyric_offset_sec)
+        lyrics_str = self._render_lyrics(lyric_time, theme) if has_lyrics else ""
         lyrics_lines = [l for l in lyrics_str.split("\n") if l] if lyrics_str else []
 
         # 3. Maximize CAVA Spectrum Visualizer Height
@@ -177,19 +182,24 @@ class TerminalPlayer:
         vol_pct = int(self.driver.volume * 100)
         vol_str = f"[{theme.header}]Vol: {vol_pct}%[/{theme.header}]"
 
+        # Show lyric offset indicator if user adjusted sync
+        offset_str = ""
+        if abs(self.lyric_offset_sec) > 0.01:
+            sign = "+" if self.lyric_offset_sec > 0 else ""
+            offset_str = f" [{theme.header}][Sync: {sign}{self.lyric_offset_sec:.1f}s][/{theme.header}]"
+
         total_dur = self.track_info.duration or 180
         curr_min, curr_sec = int(current_time) // 60, int(current_time) % 60
         tot_min, tot_sec = int(total_dur) // 60, int(total_dur) % 60
         time_str = f"{curr_min:02d}:{curr_sec:02d} / {tot_min:02d}:{tot_sec:02d}"
 
-        # Single color theme header formatting
         if width < 60:
             title_short = self.track_info.title[:15] + ".." if len(self.track_info.title) > 15 else self.track_info.title
-            return f"[{theme.header}]> PLAYING:[/{theme.header}] [{theme.header}]{title_short}[/{theme.header}]  [{theme.header}]{time_str}[/{theme.header}]"
+            return f"[{theme.header}]> PLAYING:[/{theme.header}] [{theme.header}]{title_short}[/{theme.header}]  [{theme.header}]{time_str}[/{theme.header}]{offset_str}"
 
         progress_ratio = max(0.0, min(1.0, current_time / max(1.0, float(total_dur))))
         
-        fixed_meta_len = len(f"> PLAYING:  by {self.track_info.artist}   {time_str} {vol_str}") + 15
+        fixed_meta_len = len(f"> PLAYING:  by {self.track_info.artist}   {time_str} {vol_str} {offset_str}") + 15
         avail_for_title = max(10, width - fixed_meta_len - 15)
 
         title = self.track_info.title
@@ -204,10 +214,10 @@ class TerminalPlayer:
         filled_len = int(progress_ratio * bar_len)
         progress_bar = f"[{theme.header}]{'━' * filled_len}●[/{theme.header}][dim {theme.header}]{'─' * max(0, bar_len - filled_len - 1)}[/dim {theme.header}]"
 
-        header_str = f"[{theme.header}]> PLAYING:[/{theme.header}] [{theme.header}]{title}[/{theme.header}] [dim {theme.header}]by[/dim {theme.header}] [{theme.header}]{artist}[/{theme.header}]  {status_badge}  {vol_str}  [{theme.header}]{time_str}[/{theme.header}] {progress_bar}"
+        header_str = f"[{theme.header}]> PLAYING:[/{theme.header}] [{theme.header}]{title}[/{theme.header}] [dim {theme.header}]by[/dim {theme.header}] [{theme.header}]{artist}[/{theme.header}]  {status_badge}  {vol_str}{offset_str}  [{theme.header}]{time_str}[/{theme.header}] {progress_bar}"
 
         if len(Text.from_markup(header_str).plain) > width:
-            header_str = f"[{theme.header}]> PLAYING:[/{theme.header}] [{theme.header}]{title}[/{theme.header}]  {status_badge}  [{theme.header}]{time_str}[/{theme.header}]"
+            header_str = f"[{theme.header}]> PLAYING:[/{theme.header}] [{theme.header}]{title}[/{theme.header}]  {status_badge}  [{theme.header}]{time_str}[/{theme.header}]{offset_str}"
 
         return header_str
 

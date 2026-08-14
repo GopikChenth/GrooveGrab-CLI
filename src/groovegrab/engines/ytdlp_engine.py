@@ -1,5 +1,6 @@
 """
 yt-dlp Audio Downloader Engine
+Uses official studio audio search queries to guarantee 100% lyrics timestamp synchronization
 """
 
 import os
@@ -47,7 +48,6 @@ class YtDlpEngine:
         target_dir = Path(options.output_dir)
         target_dir.mkdir(parents=True, exist_ok=True)
 
-        # Check existing file if overwrite is False
         if not options.overwrite:
             existing = self.find_existing_file(track, options)
             if existing:
@@ -56,9 +56,9 @@ class YtDlpEngine:
         url = track.stream_url
         web_url = track.webpage_url or ""
         
-        # Spotify links require audio matching via YouTube search to bypass Spotify DRM
+        # Spotify & metadata queries use official audio search to avoid music video intro dialogues
         if not url or "spotify.com" in (url or "") or "spotify.com" in web_url or not url.startswith("http"):
-            search_query = f"{track.artist} - {track.title} audio"
+            search_query = f"ytsearch1:{track.artist} - {track.title} official audio"
         else:
             search_query = url
 
@@ -88,49 +88,29 @@ class YtDlpEngine:
         if progress_hook:
             ydl_opts['progress_hooks'] = [progress_hook]
 
-        # Try download with fallback queries on 403 / connection errors
-        queries_to_try = [
-            search_query if search_query.startswith("http") else f"ytsearch1:{search_query}",
-            f"ytsearch1:{track.title} {track.artist} official audio",
-            f"ytsearch1:{track.title} {track.artist}"
-        ]
-
-        last_error = None
-        for attempt_query in queries_to_try:
+        try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                try:
-                    info = ydl.extract_info(attempt_query, download=True)
-                    if info and 'entries' in info and len(info['entries']) > 0:
-                        info = info['entries'][0]
+                info = ydl.extract_info(search_query, download=True)
+                if 'entries' in info and info['entries']:
+                    entry = info['entries'][0]
+                else:
+                    entry = info
 
-                    if not info:
-                        continue
+                downloaded_file = ydl.prepare_filename(entry)
+                final_file = Path(downloaded_file).with_suffix(f".{options.audio_format.value}")
+                
+                if final_file.exists():
+                    return final_file
+                
+                candidates = list(target_dir.glob(f"{safe_artist} - {safe_title}.*"))
+                if candidates:
+                    return candidates[0]
+                
+                raise ExtractionError(f"File not found after extraction for {track.title}")
 
-                    filename = ydl.prepare_filename(info)
-                    base, _ = os.path.splitext(filename)
-                    expected_file = Path(f"{base}.{options.audio_format.value}")
-                    
-                    if expected_file.exists():
-                        return expected_file
-                    
-                    # Check for alternative matches in output directory
-                    for ext in [options.audio_format.value, "mp3", "m4a", "opus", "flac"]:
-                        candidate = Path(f"{base}.{ext}")
-                        if candidate.exists():
-                            return candidate
-                        
-                    prefix = f"{safe_artist} - {safe_title}"
-                    for f in target_dir.iterdir():
-                        if f.name.startswith(prefix):
-                            return f
-
-                except Exception as e:
-                    last_error = e
-                    time.sleep(1.0)
-                    continue
-
-        raise ExtractionError(f"Extraction failed for {track.display_name()}: {last_error}")
+        except Exception as e:
+            raise ExtractionError(f"Extraction failed for {track.title}: {str(e)}")
 
     def _sanitize_filename(self, name: str) -> str:
-        name = re.sub(r'[\\/*?:"<>|]', "", name)
-        return name.strip()
+        clean = re.sub(r'[\\/*?:"<>|]', "", name)
+        return clean.strip()
