@@ -1,7 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Top-left typewriter lyric displayer with line-by-line lyric navigation (, and .)
+Top-left typewriter lyric displayer with Tap-to-Sync (/) and Micro-Nudge (, and .)
 """
 
 import time
@@ -49,9 +49,9 @@ class TerminalPlayer:
         self.sync_store = LyricSyncStore()
         self.lyric_offset_sec = self.sync_store.get_offset(self.track_info.title, self.track_info.artist)
         
-        self.lyric_paused = False
-        self.frozen_lyric_time = 0.0
         self.last_offset_key_time = 0.0
+        self.just_synced = False
+        self.sync_notice_time = 0.0
 
         self.driver = AudioDriver()
         self.lrc_parser = LrcParser()
@@ -93,28 +93,26 @@ class TerminalPlayer:
 
         return []
 
-    def _jump_lyric_line(self, delta_lines: int, current_time: float):
-        """Line-by-line lyric line navigation."""
+    def _tap_to_sync_active_line(self, current_time: float):
+        """Tap-to-Sync: Pressing / aligns active lyric line timestamp with current audio playback position."""
         if not self.lyrics:
             return
 
         active_idx = 0
-        lyric_time = self.frozen_lyric_time if self.lyric_paused else max(0.0, current_time + self.lyric_offset_sec)
+        lyric_time = max(0.0, current_time + self.lyric_offset_sec)
         for idx, line in enumerate(self.lyrics):
             if lyric_time >= line.timestamp_sec:
                 active_idx = idx
 
-        target_idx = max(0, min(len(self.lyrics) - 1, active_idx + delta_lines))
-        target_time = self.lyrics[target_idx].timestamp_sec
-
-        # Re-align offset so active lyric becomes target line instantly
-        self.lyric_offset_sec = target_time - current_time
+        target_line = self.lyrics[active_idx]
         
-        # Save updated offset
+        # Align lyric offset so target_line start matches current_time exactly
+        self.lyric_offset_sec = target_line.timestamp_sec - current_time
+        
+        # Save updated offset to storage
         self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
-
-        if self.lyric_paused:
-            self.frozen_lyric_time = target_time
+        self.just_synced = True
+        self.sync_notice_time = time.time()
 
     def start(self):
         if not self.driver.load_and_play(self.audio_path):
@@ -132,7 +130,7 @@ class TerminalPlayer:
                         if key:
                             now = time.time()
                             if key in (',', '<', '.', '>', '/'):
-                                if now - self.last_offset_key_time < 0.18:
+                                if now - self.last_offset_key_time < 0.15:
                                     key = None
                                 else:
                                     self.last_offset_key_time = now
@@ -142,16 +140,17 @@ class TerminalPlayer:
                                 break
                             elif key == 'SPACE':
                                 self.driver.toggle_pause()
+                            # / -> Tap-To-Sync: Lock current line timestamp to audio live!
                             elif key == '/':
-                                self.lyric_paused = not self.lyric_paused
-                                if self.lyric_paused:
-                                    self.frozen_lyric_time = max(0.0, current_time + self.lyric_offset_sec)
-                            # , / < -> Jump to Previous Lyric Line
+                                self._tap_to_sync_active_line(current_time)
+                            # , / < -> Micro-nudge offset -0.2s earlier
                             elif key in (',', '<'):
-                                self._jump_lyric_line(-1, current_time)
-                            # . / > -> Jump to Next Lyric Line
+                                self.lyric_offset_sec -= 0.2
+                                self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
+                            # . / > -> Micro-nudge offset +0.2s later
                             elif key in ('.', '>'):
-                                self._jump_lyric_line(+1, current_time)
+                                self.lyric_offset_sec += 0.2
+                                self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
 
                         time.sleep(0.025)
 
@@ -172,10 +171,7 @@ class TerminalPlayer:
 
         # 2. Top Left Ultra-Fast Typewriter Karaoke Lyrics Line
         has_lyrics = self.show_lyrics and bool(self.lyrics)
-        if self.lyric_paused:
-            lyric_time = self.frozen_lyric_time
-        else:
-            lyric_time = max(0.0, current_time + self.lyric_offset_sec)
+        lyric_time = max(0.0, current_time + self.lyric_offset_sec)
             
         lyrics_str = self._render_lyrics(lyric_time, theme) if has_lyrics else ""
         lyrics_lines = [l for l in lyrics_str.split("\n") if l] if lyrics_str else []
@@ -215,8 +211,8 @@ class TerminalPlayer:
         vol_str = f"[{theme.header}]Vol: {vol_pct}%[/{theme.header}]"
 
         offset_str = ""
-        if self.lyric_paused:
-            offset_str = f" [{theme.header}][Lyric: PAUSED][/{theme.header}]"
+        if self.just_synced and (time.time() - self.sync_notice_time < 2.0):
+            offset_str = f" [{theme.header}][Synced Live! ✓][/{theme.header}]"
         elif abs(self.lyric_offset_sec) > 0.01:
             sign = "+" if self.lyric_offset_sec > 0 else ""
             offset_str = f" [{theme.header}][Sync: {sign}{self.lyric_offset_sec:.1f}s Saved][/{theme.header}]"
