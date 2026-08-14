@@ -1,7 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Top-left 2-line typewriter lyric displayer showing only actual typed text + cursor █
+Top-left ultra-fast typewriter lyric displayer with zero dimmed future text
 """
 
 import time
@@ -140,7 +140,7 @@ class TerminalPlayer:
         header_str = self._build_header(current_time, term_width, theme)
         header_lines = [l for l in header_str.split("\n") if l]
 
-        # 2. Top Left 2-Line Synced Karaoke Lyrics (Only actual typed text + cursor █)
+        # 2. Top Left Ultra-Fast Typewriter Karaoke Lyrics Line (ONLY typed text + cursor █)
         has_lyrics = self.show_lyrics and bool(self.lyrics)
         lyric_time = max(0.0, current_time + self.lyric_offset_sec)
         lyrics_str = self._render_lyrics(lyric_time, theme) if has_lyrics else ""
@@ -228,7 +228,6 @@ class TerminalPlayer:
             if current_time >= line.timestamp_sec:
                 active_idx = idx
 
-        # Active line: ONLY actual revealed typed text + active cursor █
         active_line = self.lyrics[active_idx]
         rendered_active = self.typewriter.render_active_line(
             active_line,
@@ -236,12 +235,7 @@ class TerminalPlayer:
             active_color=f"{theme.header}"
         )
         
-        line1 = f" [{theme.header}]>[/{theme.header}] {rendered_active} [{theme.header}]█[/{theme.header}]"
-        
-        # Line 2: Next upcoming lyric line preview
-        if active_idx + 1 < len(self.lyrics):
-            next_text = self.lyrics[active_idx + 1].text
-            line2 = f"   [dim {theme.header}]{next_text}[/dim {theme.header}]"
-            return f"{line1}\n{line2}"
+        if not rendered_active:
+            return ""
 
-        return line1
+        return f" [{theme.header}]>[/{theme.header}] {rendered_active} [{theme.header}]█[/{theme.header}]"
