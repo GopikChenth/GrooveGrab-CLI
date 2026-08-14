@@ -1,7 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Top-left typewriter lyric displayer with rate-limited key input debouncing and '/' pause/resume toggle
+Strictly 4 Controls ONLY: Q (Quit), SPACE (Pause/Resume), / (Lyric Pause/Resume), , / . (Lyric Offset)
 """
 
 import time
@@ -116,39 +116,25 @@ class TerminalPlayer:
                                     self.last_offset_key_time = now
 
                         if key:
+                            # 1. Q / q -> Quit
                             if key.lower() == 'q':
                                 break
+                            # 2. SPACE -> Toggle Music Pause/Play
                             elif key == 'SPACE':
                                 self.driver.toggle_pause()
-                            elif key in ('LEFT', 'h', '['):
-                                self.driver.seek_relative(-5.0)
-                            elif key in ('RIGHT', 'l', ']'):
-                                self.driver.seek_relative(5.0)
-                            elif key in ('UP', 'k', '+', '='):
-                                self.driver.change_volume(0.05)
-                            elif key in ('DOWN', 'j', '-'):
-                                self.driver.change_volume(-0.05)
+                            # 3. / -> Toggle Lyric Pause/Resume
                             elif key == '/':
-                                # Toggle lyric pause/resume
                                 self.lyric_paused = not self.lyric_paused
                                 if self.lyric_paused:
                                     self.frozen_lyric_time = max(0.0, current_time + self.lyric_offset_sec)
+                            # 4. , / < -> Lyric Sync Offset Earlier (-0.5s)
                             elif key in (',', '<'):
                                 self.lyric_offset_sec -= 0.5
                                 self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
+                            # 5. . / > -> Lyric Sync Offset Later (+0.5s)
                             elif key in ('.', '>'):
                                 self.lyric_offset_sec += 0.5
                                 self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
-                            elif key.lower() == 'm':
-                                self.driver.toggle_mute()
-                            elif key.lower() == 'v':
-                                self.mode = next_visualizer_mode(self.mode)
-                            elif key.lower() == 't':
-                                self.theme_name = next_theme_name(self.theme_name)
-                            elif key.lower() == 'l':
-                                self.show_lyrics = not self.show_lyrics
-                            elif key.lower() == 's':
-                                self.mirror_mode = not self.mirror_mode
 
                         time.sleep(0.025)
 
