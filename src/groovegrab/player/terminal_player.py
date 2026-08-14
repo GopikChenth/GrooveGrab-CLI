@@ -1,7 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Top-left typewriter lyric displayer in single unified color theme
+Top-left typewriter lyric displayer with automatic .lrc file search and LRCLIB auto-fetch
 """
 
 import time
@@ -19,6 +19,7 @@ from groovegrab.player.lrc_parser import LrcParser, LrcLine
 from groovegrab.player.typewriter import TypewriterAnimator
 from groovegrab.player.visualizer import AudioSpectrumVisualizer, VisualizerMode, next_visualizer_mode
 from groovegrab.player.themes import get_theme, next_theme_name, Theme
+from groovegrab.engines.lyric_fetcher import LyricFetcher
 
 console = Console()
 
@@ -51,7 +52,40 @@ class TerminalPlayer:
         # Load audio for real FFT if supported
         self.visualizer.load_audio_file(self.audio_path)
         
-        self.lyrics: List[LrcLine] = self.lrc_parser.parse_file(self.lrc_path) if self.lrc_path.exists() else []
+        # Resolve and load synced lyrics
+        self.lyrics: List[LrcLine] = self._resolve_and_load_lyrics()
+
+    def _resolve_and_load_lyrics(self) -> List[LrcLine]:
+        """Resolves local .lrc files or auto-fetches synced lyrics via LRCLIB."""
+        # 1. Exact match with_suffix(".lrc")
+        if self.lrc_path and self.lrc_path.exists():
+            parsed = self.lrc_parser.parse_file(self.lrc_path)
+            if parsed:
+                return parsed
+
+        # 2. Search parent directory for matching .lrc files
+        if self.audio_path.parent.exists():
+            stem_lower = self.audio_path.stem.lower()
+            for lrc_candidate in self.audio_path.parent.glob("*.lrc"):
+                if lrc_candidate.stem.lower() in stem_lower or stem_lower in lrc_candidate.stem.lower():
+                    parsed = self.lrc_parser.parse_file(lrc_candidate)
+                    if parsed:
+                        self.lrc_path = lrc_candidate
+                        return parsed
+
+        # 3. Auto-fetch online via LRCLIB if not found locally
+        fetcher = LyricFetcher()
+        synced_text, _ = fetcher.fetch_lyrics(self.track_info)
+        if synced_text:
+            parsed = self.lrc_parser.parse_text(synced_text)
+            if parsed:
+                try:
+                    fetcher.save_lrc_file(self.audio_path, synced_text)
+                except Exception:
+                    pass
+                return parsed
+
+        return []
 
     def start(self):
         if not self.driver.load_and_play(self.audio_path):
