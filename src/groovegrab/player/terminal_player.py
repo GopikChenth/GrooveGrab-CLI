@@ -1,6 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
+Fully responsive layout supporting half-screen tiled windows and window resizing
 """
 
 import time
@@ -96,19 +97,24 @@ class TerminalPlayer:
 
     def _build_screen(self, current_time: float) -> Text:
         theme = get_theme(self.theme_name)
-        term_width = console.size.width or 80
-        term_height = console.size.height or 24
+        term_width = max(30, console.size.width or 80)
+        term_height = max(10, console.size.height or 24)
 
-        # 1. Minimal Header (Track Title, Time & Volume)
-        header_text = self._build_header(current_time, term_width, theme)
+        # 1. Responsive Adaptive Header (No Line Wrapping)
+        header_str = self._build_header(current_time, term_width, theme)
+        header_lines = header_str.split("\n")
 
-        # 2. Maximize Visualizer Height
+        # 2. Render Synced Karaoke Lyrics Line (if present)
         has_lyrics = self.show_lyrics and bool(self.lyrics)
-        reserved_lines = 4 if has_lyrics else 2
-        viz_height = max(4, term_height - reserved_lines)
-        viz_width = max(20, term_width)
+        lyrics_str = self._render_lyrics(current_time, theme) if has_lyrics else ""
+        lyrics_lines = [l for l in lyrics_str.split("\n") if l] if lyrics_str else []
 
-        # 3. Render Borderless CAVA Spectrum Visualizer
+        # 3. Maximize Visualizer Height Based On Reserved Header/Lyrics Lines
+        reserved_lines = len(header_lines) + len(lyrics_lines)
+        viz_height = max(3, term_height - reserved_lines - 1)
+        viz_width = term_width
+
+        # 4. Render Borderless CAVA Spectrum Visualizer
         viz_output = self.visualizer.render(
             current_time_sec=current_time,
             width=viz_width,
@@ -119,45 +125,61 @@ class TerminalPlayer:
             mirror=self.mirror_mode
         )
 
-        # 4. Render Synced Karaoke Lyrics Line (if present)
-        lyrics_output = self._render_lyrics(current_time, theme) if has_lyrics else ""
-
-        # Assemble clean, borderless layout (NO outer box panel, NO footer text explanation)
-        body_parts = [header_text, viz_output]
-        if lyrics_output:
-            body_parts.append(lyrics_output)
+        # Assemble clean, borderless layout (Strictly single-line header and lyrics)
+        body_parts = [header_str, viz_output]
+        if lyrics_str:
+            body_parts.append(lyrics_str)
 
         full_content = "\n".join(body_parts)
-        return Text.from_markup(full_content)
+        
+        # Text object with no_wrap to prevent terminal overflow wrapping
+        text_obj = Text.from_markup(full_content)
+        text_obj.no_wrap = True
+        return text_obj
 
     def _build_header(self, current_time: float, width: int, theme: Theme) -> str:
         status_badge = "[bold red]⏸ PAUSED[/bold red]" if self.driver.is_paused else "[bold green]▶ PLAYING[/bold green]"
         
-        # Volume meter
         vol_pct = int(self.driver.volume * 100)
-        if self.driver.is_muted:
-            vol_str = "[bold red]🔇 MUTED[/bold red]"
-        else:
-            vol_bars = int(self.driver.volume * 6)
-            vol_meter = "█" * vol_bars + "░" * (6 - vol_bars)
-            vol_str = f"Vol: {vol_pct}% [{theme.accent}]{vol_meter}[/{theme.accent}]"
+        vol_str = "[bold red]MUTED[/bold red]" if self.driver.is_muted else f"Vol: {vol_pct}%"
 
-        # Duration & Progress
         total_dur = self.track_info.duration or 180
         curr_min, curr_sec = int(current_time) // 60, int(current_time) % 60
         tot_min, tot_sec = int(total_dur) // 60, int(total_dur) % 60
         time_str = f"{curr_min:02d}:{curr_sec:02d} / {tot_min:02d}:{tot_sec:02d}"
 
-        # Visual progress bar slider
+        # 1. ULTRA NARROW TERMINAL (width < 60): Single compact status line
+        if width < 60:
+            title_short = self.track_info.title[:15] + ".." if len(self.track_info.title) > 15 else self.track_info.title
+            return f"🎵 [bold white]{title_short}[/bold white]  {status_badge}  [bold white]{time_str}[/bold white]"
+
+        # 2. MEDIUM / HALF-SCREEN TERMINAL (60 <= width < 100): Truncate title cleanly to fit
         progress_ratio = max(0.0, min(1.0, current_time / max(1.0, float(total_dur))))
-        bar_len = max(8, min(width - 45, 30))
+        
+        # Calculate available room for title and progress slider
+        fixed_meta_len = len(f"🎵  by {self.track_info.artist}   {time_str} {vol_str}") + 15
+        avail_for_title = max(10, width - fixed_meta_len - 15)
+
+        title = self.track_info.title
+        if len(title) > avail_for_title:
+            title = title[:max(8, avail_for_title - 3)] + "..."
+
+        artist = self.track_info.artist
+        if len(artist) > 15:
+            artist = artist[:12] + "..."
+
+        # Calculate progress slider length dynamically
+        bar_len = max(6, min(width - len(title) - len(artist) - 40, 20))
         filled_len = int(progress_ratio * bar_len)
         progress_bar = f"[{theme.accent}]{'━' * filled_len}●[/{theme.accent}][dim white]{'─' * max(0, bar_len - filled_len - 1)}[/dim white]"
 
-        # Metadata line
-        track_line = f"🎵 [bold white]{self.track_info.title}[/bold white] [dim]by[/dim] [{theme.header}]{self.track_info.artist}[/{theme.header}]  {status_badge}  {vol_str}  [bold white]{time_str}[/bold white] {progress_bar}"
+        header_str = f"🎵 [bold white]{title}[/bold white] [dim]by[/dim] [{theme.header}]{artist}[/{theme.header}]  {status_badge}  {vol_str}  [bold white]{time_str}[/bold white] {progress_bar}"
 
-        return track_line
+        # Hard truncation safety check
+        if len(Text.from_markup(header_str).plain) > width:
+            header_str = f"🎵 [bold white]{title}[/bold white]  {status_badge}  [bold white]{time_str}[/bold white]"
+
+        return header_str
 
     def _render_lyrics(self, current_time: float, theme: Theme) -> str:
         if not self.lyrics:
@@ -168,7 +190,6 @@ class TerminalPlayer:
             if current_time >= line.timestamp_sec:
                 active_idx = idx
 
-        # Active line with typewriter animation
         active_line = self.lyrics[active_idx]
         rendered_active = self.typewriter.render_active_line(
             active_line,
