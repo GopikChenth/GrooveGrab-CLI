@@ -1,6 +1,7 @@
 """
 Cross-Platform Non-Blocking Keyboard Input Reader
 Supports Windows (msvcrt) and Unix (termios/tty/select)
+Safe handling for mouse scroll escape sequences without accidental TUI exit
 """
 
 import sys
@@ -54,7 +55,6 @@ class NonBlockingKeyboard:
                 return None
             
             ch = msvcrt.getwch()
-            # Special/extended keys prefix in Windows (0x00 or 0xe0)
             if ch in ('\x00', '\xe0'):
                 if msvcrt.kbhit():
                     ch2 = msvcrt.getwch()
@@ -66,14 +66,10 @@ class NonBlockingKeyboard:
                         return "LEFT"
                     elif ch2 == 'M':
                         return "RIGHT"
-                    elif ch2 == 'S': # Delete
-                        return "DEL"
                 return None
 
             if ch == '\r' or ch == '\n':
                 return "ENTER"
-            elif ch == '\x1b':
-                return "ESC"
             elif ch == ' ':
                 return "SPACE"
             return ch
@@ -94,10 +90,10 @@ class NonBlockingKeyboard:
                     return "ENTER"
                 return ch
 
-            # Non-blocking escape sequence check
+            # Non-blocking escape sequence payload reader
             seq = ""
             while True:
-                rlist2, _, _ = select.select([sys.stdin], [], [], 0.005)
+                rlist2, _, _ = select.select([sys.stdin], [], [], 0.02)
                 if not rlist2:
                     break
                 seq += sys.stdin.read(1)
@@ -105,9 +101,10 @@ class NonBlockingKeyboard:
                     break
 
             if not seq:
-                return "ESC"
+                # Standalone ESC key press (Safely drop so it doesn't trigger quit)
+                return None
 
-            # Parse arrow keys and scroll
+            # Standard Arrow Keys
             if seq == "[A":
                 return "UP"
             elif seq == "[B":
@@ -116,11 +113,16 @@ class NonBlockingKeyboard:
                 return "RIGHT"
             elif seq == "[D":
                 return "LEFT"
-            elif "<64;" in seq or "Ma" in seq or "[5~" in seq:
+
+            # Mouse wheel scroll sequences (SGR mode & normal tracking)
+            # Mouse scroll up: <64;, Ma, [5~, [A
+            if "<64;" in seq or "Ma" in seq or "[5~" in seq or "<0;" in seq:
                 return "UP"
-            elif "<65;" in seq or "Mb" in seq or "[6~" in seq:
+            # Mouse scroll down: <65;, Mb, [6~, [B
+            elif "<65;" in seq or "Mb" in seq or "[6~" in seq or "<1;" in seq:
                 return "DOWN"
 
+            # Safely ignore all unhandled mouse/terminal escape sequences without quitting
             return None
         except Exception:
             return None

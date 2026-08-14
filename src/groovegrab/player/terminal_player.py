@@ -68,7 +68,7 @@ class TerminalPlayer:
 
                         key = kbd.read_key()
                         if key:
-                            if key.lower() == 'q' or key == 'ESC':
+                            if key.lower() == 'q':
                                 break
                             elif key == 'SPACE':
                                 self.driver.toggle_pause()
