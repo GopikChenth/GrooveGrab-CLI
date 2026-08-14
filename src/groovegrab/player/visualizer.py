@@ -1,11 +1,11 @@
 """
 Full-Featured CAVA-Style Audio Spectrum Visualizer Engine
-Supports buttery-smooth exponential smoothing, multi-row vertical equalizer bars,
-braille curves, oscilloscope waveform, symmetric mirror, and dynamic particle effects.
+Supports real 100% mathematical FFT spectrum decoding via FFmpeg / SoundFile with zero artificial noise during quiet sections.
 """
 
 import math
 import random
+import subprocess
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -38,20 +38,32 @@ def next_visualizer_mode(current: VisualizerMode) -> VisualizerMode:
 
 
 class SpectrumDataEngine:
-    """Computes real or synthesized logarithmic frequency bands with buttery-smooth IIR physics."""
+    """Computes real 100% mathematical FFT frequency spectrum with fluid CAVA IIR physics."""
 
     def __init__(self, num_bars: int = 40):
         self.num_bars = num_bars
         self.heights = np.zeros(num_bars, dtype=np.float32)
         self.peak_heights = np.zeros(num_bars, dtype=np.float32)
         
-        # Audio buffer for real PCM data if available
         self.pcm_data: Optional[np.ndarray] = None
-        self.sample_rate: int = 44100
+        self.sample_rate: int = 22050
         self.audio_loaded: bool = False
 
     def load_audio_file(self, file_path: Path):
-        """Optionally load audio samples for real FFT calculation."""
+        """Decode 100% real PCM audio samples using FFmpeg for real mathematical FFT visualizer."""
+        try:
+            cmd = ["ffmpeg", "-i", str(file_path), "-f", "s16le", "-ac", "1", "-ar", "22050", "-loglevel", "quiet", "pipe:1"]
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            if res.stdout and len(res.stdout) > 2048:
+                raw_int16 = np.frombuffer(res.stdout, dtype=np.int16)
+                self.pcm_data = raw_int16.astype(np.float32) / 32768.0
+                self.sample_rate = 22050
+                self.audio_loaded = True
+                return
+        except Exception:
+            pass
+
+        # Fallback to soundfile if ffmpeg pipeline fails
         try:
             import soundfile as sf
             data, sr = sf.read(str(file_path), dtype='float32')
@@ -72,25 +84,21 @@ class SpectrumDataEngine:
             self.peak_heights = np.zeros(num_bars, dtype=np.float32)
 
         if not is_playing:
-            # Decay smoothly
-            self.heights *= 0.82
+            self.heights *= 0.80
             return np.clip(self.heights, 0.0, 1.0)
 
-        # Real FFT if audio loaded, otherwise procedural physics
         if self.audio_loaded and self.pcm_data is not None:
             raw_spectrum = self._compute_real_fft(current_time_sec, num_bars)
         else:
             raw_spectrum = self._compute_procedural_spectrum(current_time_sec, num_bars)
 
-        # Apply CAVA IIR Exponential Smoothing for buttery-smooth fluid motion
-        smoothing_factor = 0.76  # 76% previous state + 24% new target
+        # Apply CAVA IIR Exponential Smoothing for fluid motion
+        smoothing_factor = 0.75
         for i in range(num_bars):
             target = raw_spectrum[i]
             if target > self.heights[i]:
-                # Smooth rise
-                self.heights[i] = self.heights[i] * 0.50 + target * 0.50
+                self.heights[i] = self.heights[i] * 0.45 + target * 0.55
             else:
-                # Smooth fluid falloff
                 self.heights[i] = self.heights[i] * smoothing_factor + target * (1.0 - smoothing_factor)
 
         return np.clip(self.heights, 0.0, 1.0)
@@ -110,6 +118,11 @@ class SpectrumDataEngine:
         if len(chunk) < window_size:
             chunk = np.pad(chunk, (0, window_size - len(chunk)))
 
+        # Silence threshold: if chunk amplitude is quiet, return 0.0
+        rms_energy = np.sqrt(np.mean(chunk ** 2))
+        if rms_energy < 0.005:
+            return np.zeros(num_bars, dtype=np.float32)
+
         windowed = chunk * np.hanning(len(chunk))
         fft_vals = np.abs(np.fft.rfft(windowed))
 
@@ -117,7 +130,7 @@ class SpectrumDataEngine:
         fft_len = len(fft_vals)
         
         min_freq = 40.0
-        max_freq = min(16000.0, self.sample_rate / 2.0)
+        max_freq = min(10000.0, self.sample_rate / 2.0)
         log_min = math.log10(min_freq)
         log_max = math.log10(max_freq)
 
@@ -130,40 +143,23 @@ class SpectrumDataEngine:
             
             val = float(np.mean(fft_vals[bin_start:bin_end])) if bin_end > bin_start else 0.0
             
-            boost = 1.0 + (i / max(1, num_bars)) * 1.6
-            norm_val = math.log1p(val * 4.0) * 0.25 * boost
-            bands[i] = min(1.0, max(0.05, norm_val))
+            boost = 1.0 + (i / max(1, num_bars)) * 1.2
+            norm_val = math.log1p(val * 8.0) * 0.20 * boost
+            bands[i] = min(1.0, max(0.0, norm_val))
 
         return bands
 
     def _compute_procedural_spectrum(self, t: float, num_bars: int) -> np.ndarray:
-        """High-fidelity multi-frequency rhythmic simulation with dynamic beats."""
+        """Procedural fallback simulation."""
         spectrum = np.zeros(num_bars, dtype=np.float32)
-        
         beat_phase = (t * (128.0 / 60.0)) % 1.0
         kick_pulse = math.exp(-beat_phase * 5.0)
-        snare_pulse = math.exp(-((beat_phase + 0.5) % 1.0) * 7.0)
 
         for i in range(num_bars):
             ratio = i / max(1, num_bars - 1)
-            
             bass_weight = math.exp(-ratio * 3.2)
-            mid_weight = math.sin(ratio * math.pi) ** 1.4
-            treble_weight = ratio ** 1.2
-            
-            wave1 = math.sin(t * 7.0 + i * 0.40) * 0.35
-            wave2 = math.cos(t * 12.5 - i * 0.22) * 0.25
-            wave3 = math.sin(t * 24.0 + i * 0.70) * 0.20
-            
-            shimmer = (random.random() * 0.15) if ratio > 0.6 else (random.random() * 0.05)
-
-            energy = (
-                bass_weight * (0.35 + kick_pulse * 0.55) +
-                mid_weight * (0.25 + wave1 + wave2 + snare_pulse * 0.30) +
-                treble_weight * (0.20 + wave3 + shimmer)
-            )
-
-            spectrum[i] = max(0.04, min(0.98, energy))
+            energy = bass_weight * (0.2 + kick_pulse * 0.4)
+            spectrum[i] = max(0.0, min(0.9, energy))
 
         return spectrum
 
@@ -173,7 +169,6 @@ class AudioSpectrumVisualizer:
 
     BAR_SUBBLOCKS = [" ", " ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
     
-    # 2x4 Braille pattern matrix
     BRAILLE_MAP = [
         [" ", "⠂", "⠒", "⠲", "⠶", "⠶", "⣶", "⣿"],
         [" ", "⠁", "⠉", "⠋", "⠛", "⠟", "⠿", "⣿"],
@@ -182,7 +177,6 @@ class AudioSpectrumVisualizer:
     def __init__(self, num_bars: int = 40):
         self.num_bars = num_bars
         self.engine = SpectrumDataEngine(num_bars)
-        self.particles: List[Tuple[float, float, float, str]] = []
         self.mirror_mode: bool = False
 
     def load_audio_file(self, file_path: Path):
@@ -198,7 +192,6 @@ class AudioSpectrumVisualizer:
         is_playing: bool = True,
         mirror: bool = False,
     ) -> str:
-        """Render the full multi-row visualizer string formatted for Rich."""
         theme = get_theme(theme_name)
         height = max(4, height)
         width = max(20, width)
@@ -230,11 +223,9 @@ class AudioSpectrumVisualizer:
         theme: Theme,
         bar_width: int
     ) -> str:
-        """Pure Clean CAVA Multi-Row Vertical Equalizer Bars without falling dashes or bottom text."""
         num_bars = len(heights)
         grid_lines = []
 
-        # Render each row from top (height - 1) to bottom (0)
         for row in range(height - 1, -1, -1):
             row_color = theme.get_row_color(row, height)
             row_chars = []
@@ -267,7 +258,6 @@ class AudioSpectrumVisualizer:
         theme: Theme,
         bar_width: int
     ) -> str:
-        """Symmetric Mirror Visualizer (Center-Outward Equalizer)."""
         half_n = len(heights) // 2
         left_side = heights[:half_n]
         mirrored_heights = np.concatenate([left_side[::-1], left_side])
@@ -280,7 +270,6 @@ class AudioSpectrumVisualizer:
         height: int,
         theme: Theme
     ) -> str:
-        """High-Density Braille Curve Visualizer."""
         num_bars = len(heights)
         grid_lines = []
 
@@ -316,7 +305,6 @@ class AudioSpectrumVisualizer:
         theme: Theme,
         is_playing: bool
     ) -> str:
-        """Oscilloscope Waveform Line Visualizer."""
         grid_lines = []
         mid_row = height // 2
 
@@ -345,7 +333,4 @@ class AudioSpectrumVisualizer:
         theme: Theme,
         is_playing: bool
     ) -> str:
-        """Floating Beat Particles Visualizer."""
-        grid_lines = []
-        bars = self._render_bars_grid(heights, width, height, theme, bar_width=1)
-        return bars
+        return self._render_bars_grid(heights, width, height, theme, bar_width=1)
