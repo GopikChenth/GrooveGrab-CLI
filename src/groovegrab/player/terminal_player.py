@@ -1,7 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Fully responsive layout supporting half-screen tiled windows and window resizing
+Top-left typewriter lyric displayer in single unified color theme
 """
 
 import time
@@ -100,16 +100,16 @@ class TerminalPlayer:
         term_width = max(30, console.size.width or 80)
         term_height = max(10, console.size.height or 24)
 
-        # 1. Responsive Adaptive Header (No Line Wrapping)
+        # 1. Top Left Status Header (Single Unified Theme Color)
         header_str = self._build_header(current_time, term_width, theme)
-        header_lines = header_str.split("\n")
+        header_lines = [l for l in header_str.split("\n") if l]
 
-        # 2. Render Synced Karaoke Lyrics Line (if present)
+        # 2. Top Left Synced Karaoke Lyrics Line with Typewriter & Cursor █
         has_lyrics = self.show_lyrics and bool(self.lyrics)
         lyrics_str = self._render_lyrics(current_time, theme) if has_lyrics else ""
         lyrics_lines = [l for l in lyrics_str.split("\n") if l] if lyrics_str else []
 
-        # 3. Maximize Visualizer Height Based On Reserved Header/Lyrics Lines
+        # 3. Maximize CAVA Spectrum Visualizer Height
         reserved_lines = len(header_lines) + len(lyrics_lines)
         viz_height = max(3, term_height - reserved_lines - 1)
         viz_width = term_width
@@ -125,39 +125,37 @@ class TerminalPlayer:
             mirror=self.mirror_mode
         )
 
-        # Assemble clean, borderless layout (Strictly single-line header and lyrics)
-        body_parts = [header_str, viz_output]
+        # Assemble layout at top-left
+        body_parts = [header_str]
         if lyrics_str:
             body_parts.append(lyrics_str)
+        body_parts.append(viz_output)
 
         full_content = "\n".join(body_parts)
         
-        # Text object with no_wrap to prevent terminal overflow wrapping
         text_obj = Text.from_markup(full_content)
         text_obj.no_wrap = True
         return text_obj
 
     def _build_header(self, current_time: float, width: int, theme: Theme) -> str:
-        status_badge = "[bold red]⏸ PAUSED[/bold red]" if self.driver.is_paused else "[bold green]▶ PLAYING[/bold green]"
+        status_badge = f"[{theme.header}]▶ PLAYING[/{theme.header}]" if not self.driver.is_paused else f"[{theme.header}]⏸ PAUSED[/{theme.header}]"
         
         vol_pct = int(self.driver.volume * 100)
-        vol_str = "[bold red]MUTED[/bold red]" if self.driver.is_muted else f"Vol: {vol_pct}%"
+        vol_str = f"[{theme.header}]Vol: {vol_pct}%[/{theme.header}]"
 
         total_dur = self.track_info.duration or 180
         curr_min, curr_sec = int(current_time) // 60, int(current_time) % 60
         tot_min, tot_sec = int(total_dur) // 60, int(total_dur) % 60
         time_str = f"{curr_min:02d}:{curr_sec:02d} / {tot_min:02d}:{tot_sec:02d}"
 
-        # 1. ULTRA NARROW TERMINAL (width < 60): Single compact status line
+        # Single color theme header formatting
         if width < 60:
             title_short = self.track_info.title[:15] + ".." if len(self.track_info.title) > 15 else self.track_info.title
-            return f"🎵 [bold white]{title_short}[/bold white]  {status_badge}  [bold white]{time_str}[/bold white]"
+            return f"[{theme.header}]> PLAYING:[/{theme.header}] [{theme.header}]{title_short}[/{theme.header}]  [{theme.header}]{time_str}[/{theme.header}]"
 
-        # 2. MEDIUM / HALF-SCREEN TERMINAL (60 <= width < 100): Truncate title cleanly to fit
         progress_ratio = max(0.0, min(1.0, current_time / max(1.0, float(total_dur))))
         
-        # Calculate available room for title and progress slider
-        fixed_meta_len = len(f"🎵  by {self.track_info.artist}   {time_str} {vol_str}") + 15
+        fixed_meta_len = len(f"> PLAYING:  by {self.track_info.artist}   {time_str} {vol_str}") + 15
         avail_for_title = max(10, width - fixed_meta_len - 15)
 
         title = self.track_info.title
@@ -168,16 +166,14 @@ class TerminalPlayer:
         if len(artist) > 15:
             artist = artist[:12] + "..."
 
-        # Calculate progress slider length dynamically
         bar_len = max(6, min(width - len(title) - len(artist) - 40, 20))
         filled_len = int(progress_ratio * bar_len)
-        progress_bar = f"[{theme.accent}]{'━' * filled_len}●[/{theme.accent}][dim white]{'─' * max(0, bar_len - filled_len - 1)}[/dim white]"
+        progress_bar = f"[{theme.header}]{'━' * filled_len}●[/{theme.header}][dim {theme.header}]{'─' * max(0, bar_len - filled_len - 1)}[/dim {theme.header}]"
 
-        header_str = f"🎵 [bold white]{title}[/bold white] [dim]by[/dim] [{theme.header}]{artist}[/{theme.header}]  {status_badge}  {vol_str}  [bold white]{time_str}[/bold white] {progress_bar}"
+        header_str = f"[{theme.header}]> PLAYING:[/{theme.header}] [{theme.header}]{title}[/{theme.header}] [dim {theme.header}]by[/dim {theme.header}] [{theme.header}]{artist}[/{theme.header}]  {status_badge}  {vol_str}  [{theme.header}]{time_str}[/{theme.header}] {progress_bar}"
 
-        # Hard truncation safety check
         if len(Text.from_markup(header_str).plain) > width:
-            header_str = f"🎵 [bold white]{title}[/bold white]  {status_badge}  [bold white]{time_str}[/bold white]"
+            header_str = f"[{theme.header}]> PLAYING:[/{theme.header}] [{theme.header}]{title}[/{theme.header}]  {status_badge}  [{theme.header}]{time_str}[/{theme.header}]"
 
         return header_str
 
@@ -194,7 +190,7 @@ class TerminalPlayer:
         rendered_active = self.typewriter.render_active_line(
             active_line,
             current_time,
-            active_color=theme.active_lyric,
-            dim_color=theme.dim_lyric
+            active_color=f"{theme.header}",
+            dim_color=f"dim {theme.header}"
         )
-        return f" ❯ {rendered_active}"
+        return f" [{theme.header}]>[/{theme.header}] {rendered_active} [{theme.header}]█[/{theme.header}]"
