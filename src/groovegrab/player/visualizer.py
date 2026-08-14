@@ -1,6 +1,6 @@
 """
 Full-Featured CAVA-Style Audio Spectrum Visualizer Engine
-Supports real 100% mathematical FFT spectrum decoding via FFmpeg / SoundFile with zero artificial noise during quiet sections.
+Supports real 100% mathematical FFT spectrum decoding via FFmpeg with graceful, toned-down visualizer height dynamic range.
 """
 
 import math
@@ -38,7 +38,7 @@ def next_visualizer_mode(current: VisualizerMode) -> VisualizerMode:
 
 
 class SpectrumDataEngine:
-    """Computes real 100% mathematical FFT frequency spectrum with fluid CAVA IIR physics."""
+    """Computes real 100% mathematical FFT frequency spectrum with toned-down graceful CAVA heights."""
 
     def __init__(self, num_bars: int = 40):
         self.num_bars = num_bars
@@ -63,7 +63,6 @@ class SpectrumDataEngine:
         except Exception:
             pass
 
-        # Fallback to soundfile if ffmpeg pipeline fails
         try:
             import soundfile as sf
             data, sr = sf.read(str(file_path), dtype='float32')
@@ -77,7 +76,7 @@ class SpectrumDataEngine:
             self.pcm_data = None
 
     def update(self, current_time_sec: float, num_bars: int, is_playing: bool = True, dt: float = 0.033) -> np.ndarray:
-        """Compute frequency bar heights normalized between 0.0 and 1.0 with fluid smoothing."""
+        """Compute frequency bar heights normalized with fluid smoothing."""
         if num_bars != self.num_bars:
             self.num_bars = num_bars
             self.heights = np.zeros(num_bars, dtype=np.float32)
@@ -97,7 +96,7 @@ class SpectrumDataEngine:
         for i in range(num_bars):
             target = raw_spectrum[i]
             if target > self.heights[i]:
-                self.heights[i] = self.heights[i] * 0.45 + target * 0.55
+                self.heights[i] = self.heights[i] * 0.40 + target * 0.60
             else:
                 self.heights[i] = self.heights[i] * smoothing_factor + target * (1.0 - smoothing_factor)
 
@@ -118,7 +117,6 @@ class SpectrumDataEngine:
         if len(chunk) < window_size:
             chunk = np.pad(chunk, (0, window_size - len(chunk)))
 
-        # Silence threshold: if chunk amplitude is quiet, return 0.0
         rms_energy = np.sqrt(np.mean(chunk ** 2))
         if rms_energy < 0.005:
             return np.zeros(num_bars, dtype=np.float32)
@@ -143,14 +141,15 @@ class SpectrumDataEngine:
             
             val = float(np.mean(fft_vals[bin_start:bin_end])) if bin_end > bin_start else 0.0
             
-            boost = 1.0 + (i / max(1, num_bars)) * 1.2
-            norm_val = math.log1p(val * 8.0) * 0.20 * boost
-            bands[i] = min(1.0, max(0.0, norm_val))
+            # Toned down scaling so visualizer bars move gracefully between 20% - 50% height
+            boost = 0.65 + (i / max(1, num_bars)) * 0.35
+            norm_val = math.log1p(val * 1.6) * 0.09 * boost
+            bands[i] = min(0.70, max(0.0, norm_val))
 
         return bands
 
     def _compute_procedural_spectrum(self, t: float, num_bars: int) -> np.ndarray:
-        """Procedural fallback simulation."""
+        """Procedural fallback simulation with toned down height."""
         spectrum = np.zeros(num_bars, dtype=np.float32)
         beat_phase = (t * (128.0 / 60.0)) % 1.0
         kick_pulse = math.exp(-beat_phase * 5.0)
@@ -158,8 +157,8 @@ class SpectrumDataEngine:
         for i in range(num_bars):
             ratio = i / max(1, num_bars - 1)
             bass_weight = math.exp(-ratio * 3.2)
-            energy = bass_weight * (0.2 + kick_pulse * 0.4)
-            spectrum[i] = max(0.0, min(0.9, energy))
+            energy = bass_weight * (0.15 + kick_pulse * 0.3)
+            spectrum[i] = max(0.0, min(0.6, energy))
 
         return spectrum
 

@@ -1,7 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Strictly 4 Controls ONLY: Q (Quit), SPACE (Pause/Resume), / (Lyric Pause/Resume), , / . (Lyric Offset)
+Top-left typewriter lyric displayer with line-by-line lyric navigation (, and .)
 """
 
 import time
@@ -93,6 +93,29 @@ class TerminalPlayer:
 
         return []
 
+    def _jump_lyric_line(self, delta_lines: int, current_time: float):
+        """Line-by-line lyric line navigation."""
+        if not self.lyrics:
+            return
+
+        active_idx = 0
+        lyric_time = self.frozen_lyric_time if self.lyric_paused else max(0.0, current_time + self.lyric_offset_sec)
+        for idx, line in enumerate(self.lyrics):
+            if lyric_time >= line.timestamp_sec:
+                active_idx = idx
+
+        target_idx = max(0, min(len(self.lyrics) - 1, active_idx + delta_lines))
+        target_time = self.lyrics[target_idx].timestamp_sec
+
+        # Re-align offset so active lyric becomes target line instantly
+        self.lyric_offset_sec = target_time - current_time
+        
+        # Save updated offset
+        self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
+
+        if self.lyric_paused:
+            self.frozen_lyric_time = target_time
+
     def start(self):
         if not self.driver.load_and_play(self.audio_path):
             console.print(f"[bold red]❌ Error: Failed to load audio file {self.audio_path}[/bold red]")
@@ -108,7 +131,6 @@ class TerminalPlayer:
                         key = kbd.read_key()
                         if key:
                             now = time.time()
-                            # Debounce rapid key repeat for offset adjustment and pause toggle
                             if key in (',', '<', '.', '>', '/'):
                                 if now - self.last_offset_key_time < 0.18:
                                     key = None
@@ -116,25 +138,20 @@ class TerminalPlayer:
                                     self.last_offset_key_time = now
 
                         if key:
-                            # 1. Q / q -> Quit
                             if key.lower() == 'q':
                                 break
-                            # 2. SPACE -> Toggle Music Pause/Play
                             elif key == 'SPACE':
                                 self.driver.toggle_pause()
-                            # 3. / -> Toggle Lyric Pause/Resume
                             elif key == '/':
                                 self.lyric_paused = not self.lyric_paused
                                 if self.lyric_paused:
                                     self.frozen_lyric_time = max(0.0, current_time + self.lyric_offset_sec)
-                            # 4. , / < -> Lyric Sync Offset Earlier (-0.5s)
+                            # , / < -> Jump to Previous Lyric Line
                             elif key in (',', '<'):
-                                self.lyric_offset_sec -= 0.5
-                                self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
-                            # 5. . / > -> Lyric Sync Offset Later (+0.5s)
+                                self._jump_lyric_line(-1, current_time)
+                            # . / > -> Jump to Next Lyric Line
                             elif key in ('.', '>'):
-                                self.lyric_offset_sec += 0.5
-                                self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
+                                self._jump_lyric_line(+1, current_time)
 
                         time.sleep(0.025)
 
