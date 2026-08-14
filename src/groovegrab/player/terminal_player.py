@@ -1,7 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Top-left typewriter lyric displayer with persistent lyric sync store and '/' lyric pause toggle
+Top-left typewriter lyric displayer with rate-limited key input debouncing and '/' pause/resume toggle
 """
 
 import time
@@ -51,6 +51,7 @@ class TerminalPlayer:
         
         self.lyric_paused = False
         self.frozen_lyric_time = 0.0
+        self.last_offset_key_time = 0.0
 
         self.driver = AudioDriver()
         self.lrc_parser = LrcParser()
@@ -106,6 +107,15 @@ class TerminalPlayer:
 
                         key = kbd.read_key()
                         if key:
+                            now = time.time()
+                            # Debounce rapid key repeat for offset adjustment and pause toggle
+                            if key in (',', '<', '.', '>', '/'):
+                                if now - self.last_offset_key_time < 0.18:
+                                    key = None
+                                else:
+                                    self.last_offset_key_time = now
+
+                        if key:
                             if key.lower() == 'q':
                                 break
                             elif key == 'SPACE':
@@ -119,7 +129,7 @@ class TerminalPlayer:
                             elif key in ('DOWN', 'j', '-'):
                                 self.driver.change_volume(-0.05)
                             elif key == '/':
-                                # Toggle lyric pause/freeze
+                                # Toggle lyric pause/resume
                                 self.lyric_paused = not self.lyric_paused
                                 if self.lyric_paused:
                                     self.frozen_lyric_time = max(0.0, current_time + self.lyric_offset_sec)
@@ -143,7 +153,6 @@ class TerminalPlayer:
                         time.sleep(0.025)
 
         self.driver.stop()
-        # Save final offset on exit
         if abs(self.lyric_offset_sec) > 0.01:
             self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
 
