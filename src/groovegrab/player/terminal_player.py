@@ -1,7 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Top-left ultra-fast typewriter lyric displayer with zero dimmed future text
+Top-left typewriter lyric displayer with persistent lyric sync store and '/' lyric pause toggle
 """
 
 import time
@@ -20,6 +20,7 @@ from groovegrab.player.typewriter import TypewriterAnimator
 from groovegrab.player.visualizer import AudioSpectrumVisualizer, VisualizerMode, next_visualizer_mode
 from groovegrab.player.themes import get_theme, next_theme_name, Theme
 from groovegrab.engines.lyric_fetcher import LyricFetcher
+from groovegrab.player.lyric_sync_store import LyricSyncStore
 
 console = Console()
 
@@ -43,7 +44,13 @@ class TerminalPlayer:
         self.mode = initial_mode
         self.show_lyrics = True
         self.mirror_mode = False
-        self.lyric_offset_sec = 0.0
+        
+        # Load saved song-specific lyric sync offset
+        self.sync_store = LyricSyncStore()
+        self.lyric_offset_sec = self.sync_store.get_offset(self.track_info.title, self.track_info.artist)
+        
+        self.lyric_paused = False
+        self.frozen_lyric_time = 0.0
 
         self.driver = AudioDriver()
         self.lrc_parser = LrcParser()
@@ -111,10 +118,17 @@ class TerminalPlayer:
                                 self.driver.change_volume(0.05)
                             elif key in ('DOWN', 'j', '-'):
                                 self.driver.change_volume(-0.05)
+                            elif key == '/':
+                                # Toggle lyric pause/freeze
+                                self.lyric_paused = not self.lyric_paused
+                                if self.lyric_paused:
+                                    self.frozen_lyric_time = max(0.0, current_time + self.lyric_offset_sec)
                             elif key in (',', '<'):
                                 self.lyric_offset_sec -= 0.5
+                                self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
                             elif key in ('.', '>'):
                                 self.lyric_offset_sec += 0.5
+                                self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
                             elif key.lower() == 'm':
                                 self.driver.toggle_mute()
                             elif key.lower() == 'v':
@@ -129,6 +143,10 @@ class TerminalPlayer:
                         time.sleep(0.025)
 
         self.driver.stop()
+        # Save final offset on exit
+        if abs(self.lyric_offset_sec) > 0.01:
+            self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
+
         console.print(f"[bold green]✔ Playback finished:[/bold green] [white]{self.track_info.display_name()}[/white]")
 
     def _build_screen(self, current_time: float) -> Text:
@@ -140,9 +158,13 @@ class TerminalPlayer:
         header_str = self._build_header(current_time, term_width, theme)
         header_lines = [l for l in header_str.split("\n") if l]
 
-        # 2. Top Left Ultra-Fast Typewriter Karaoke Lyrics Line (ONLY typed text + cursor █)
+        # 2. Top Left Ultra-Fast Typewriter Karaoke Lyrics Line
         has_lyrics = self.show_lyrics and bool(self.lyrics)
-        lyric_time = max(0.0, current_time + self.lyric_offset_sec)
+        if self.lyric_paused:
+            lyric_time = self.frozen_lyric_time
+        else:
+            lyric_time = max(0.0, current_time + self.lyric_offset_sec)
+            
         lyrics_str = self._render_lyrics(lyric_time, theme) if has_lyrics else ""
         lyrics_lines = [l for l in lyrics_str.split("\n") if l] if lyrics_str else []
 
@@ -181,9 +203,11 @@ class TerminalPlayer:
         vol_str = f"[{theme.header}]Vol: {vol_pct}%[/{theme.header}]"
 
         offset_str = ""
-        if abs(self.lyric_offset_sec) > 0.01:
+        if self.lyric_paused:
+            offset_str = f" [{theme.header}][Lyric: PAUSED][/{theme.header}]"
+        elif abs(self.lyric_offset_sec) > 0.01:
             sign = "+" if self.lyric_offset_sec > 0 else ""
-            offset_str = f" [{theme.header}][Sync: {sign}{self.lyric_offset_sec:.1f}s][/{theme.header}]"
+            offset_str = f" [{theme.header}][Sync: {sign}{self.lyric_offset_sec:.1f}s Saved][/{theme.header}]"
 
         total_dur = self.track_info.duration or 180
         curr_min, curr_sec = int(current_time) // 60, int(current_time) % 60

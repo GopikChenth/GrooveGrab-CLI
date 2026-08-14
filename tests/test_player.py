@@ -1,9 +1,10 @@
 """
-Unit Tests for Synced LRC Parser and Typewriter Animator
+Unit Tests for Synced LRC Parser, Typewriter Animator, and LyricSyncStore
 """
 
 from groovegrab.player.lrc_parser import LrcParser, LrcLine
 from groovegrab.player.typewriter import TypewriterAnimator
+from groovegrab.player.lyric_sync_store import LyricSyncStore
 
 
 def test_lrc_parsing():
@@ -32,3 +33,11 @@ def test_typewriter_animator():
     # Halfway -> partial typewriter text
     rendered_mid = animator.render_active_line(line, 12.5)
     assert "Hello" in rendered_mid
+
+
+def test_lyric_sync_store():
+    store = LyricSyncStore()
+    store.save_offset("Loser", "Tame Impala", 1.5)
+    
+    saved_offset = store.get_offset("Loser", "Tame Impala")
+    assert saved_offset == 1.5
