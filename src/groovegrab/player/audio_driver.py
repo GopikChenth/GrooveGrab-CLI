@@ -1,6 +1,6 @@
 """
-Universal Cross-Platform Audio Playback Driver & Clock Controller
-Supports ffplay, mpv, paplay, and pygame.mixer for smooth, distortion-free audio playback.
+Universal Cross-Platform Audio Playback Driver & Monotonic Clock Controller
+Supports ffplay, mpv, paplay, and vlc with high-precision monotonic clock tracking.
 """
 
 import os
@@ -16,7 +16,7 @@ IS_WINDOWS = os.name == "nt"
 
 
 class AudioDriver:
-    """Universal audio driver with robust cross-platform clock tracking and process management."""
+    """High-precision audio driver with monotonic clock tracking and cross-platform process management."""
 
     def __init__(self):
         self.proc: Optional[subprocess.Popen] = None
@@ -32,7 +32,6 @@ class AudioDriver:
         self.player_cmd = self._detect_system_player()
 
     def _detect_system_player(self) -> Optional[str]:
-        # Note: Do NOT include 'aplay' because aplay cannot decode mp3/flac and plays noise!
         for cmd in ["ffplay", "mpv", "paplay", "vlc", "cvlc"]:
             if shutil.which(cmd):
                 return cmd
@@ -46,8 +45,8 @@ class AudioDriver:
         self.file_path = file_path
         self.is_loaded = True
         self.is_paused = False
-        self.accumulated_time_sec = start_offset
-        self.start_time_sec = time.time()
+        self.accumulated_time_sec = max(0.0, start_offset)
+        self.start_time_sec = time.monotonic()
 
         vol_val = 0 if self.is_muted else int(self.volume * 100)
 
@@ -85,7 +84,7 @@ class AudioDriver:
             return 0.0
         if self.is_paused:
             return self.accumulated_time_sec
-        return self.accumulated_time_sec + (time.time() - self.start_time_sec)
+        return self.accumulated_time_sec + (time.monotonic() - self.start_time_sec)
 
     def toggle_pause(self):
         if not self.is_loaded or not self.file_path:
@@ -103,10 +102,10 @@ class AudioDriver:
                         self._restart_at(curr_pos)
                 else:
                     self._restart_at(curr_pos)
-            self.start_time_sec = time.time()
+            self.start_time_sec = time.monotonic()
             self.is_paused = False
         else:
-            self.accumulated_time_sec += (time.time() - self.start_time_sec)
+            self.accumulated_time_sec += (time.monotonic() - self.start_time_sec)
             self.is_paused = True
             if IS_WINDOWS:
                 self._terminate_proc()
@@ -123,7 +122,7 @@ class AudioDriver:
         curr = self.get_position_sec()
         new_pos = max(0.0, curr + delta_sec)
         self.accumulated_time_sec = new_pos
-        self.start_time_sec = time.time()
+        self.start_time_sec = time.monotonic()
         
         if not self.is_paused:
             self._restart_at(new_pos)

@@ -17,7 +17,7 @@ app = typer.Typer(help="Manage user configuration settings")
 
 
 def run_interactive_wizard(cfg: GrooveGrabConfig) -> GrooveGrabConfig:
-    console.print("\n[bold cyan]⚙️  GrooveGrab Interactive Setup Wizard[/bold cyan]\n")
+    console.print("\n[bold cyan]GrooveGrab Interactive Setup Wizard[/bold cyan]\n")
 
     # 1. Download Directory
     new_dir = questionary.text(
@@ -135,7 +135,7 @@ def config_command(
         config_mgr.save_config(cfg)
         print_success("Configuration updated and saved successfully!")
 
-    table = Table(title="⚙️  GrooveGrab Current Configuration", show_header=True, header_style="bold magenta")
+    table = Table(title="GrooveGrab Current Configuration", show_header=True, header_style="bold magenta")
     table.add_column("Setting", style="bold cyan")
     table.add_column("Value", style="bold yellow")
 

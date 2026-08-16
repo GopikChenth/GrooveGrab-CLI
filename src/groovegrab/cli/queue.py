@@ -24,7 +24,7 @@ def queue_command(
         console.print("[yellow]No download history found.[/yellow]")
         return
 
-    table = Table(title="📜 Download History & Queue", show_header=True, header_style="bold magenta")
+    table = Table(title="Download History & Queue", show_header=True, header_style="bold magenta")
     table.add_column("Status", style="cyan")
     table.add_column("Track", style="bold white")
     table.add_column("Artist", style="green")

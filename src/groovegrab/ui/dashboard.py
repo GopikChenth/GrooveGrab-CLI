@@ -53,7 +53,7 @@ class PlaylistProgressDashboard:
                 self.progress.remove_task(self.task_map[task_id])
                 del self.task_map[task_id]
             self.progress.advance(self.overall_id, 1)
-            console.print(f"[bold yellow]  ⏭  Skipped (Already exists):[/bold yellow] {title_str}")
+            console.print(f"[bold yellow]  [Skipped] (Already exists):[/bold yellow] {title_str}")
             return
 
         # Handle completed tracks
@@ -62,7 +62,7 @@ class PlaylistProgressDashboard:
                 self.progress.remove_task(self.task_map[task_id])
                 del self.task_map[task_id]
             self.progress.advance(self.overall_id, 1)
-            console.print(f"[bold green]  ✔ Downloaded:[/bold green] {title_str}")
+            console.print(f"[bold green]  [Downloaded]:[/bold green] {title_str}")
             return
 
         # Handle failed tracks
@@ -72,7 +72,7 @@ class PlaylistProgressDashboard:
                 del self.task_map[task_id]
             self.progress.advance(self.overall_id, 1)
             err_msg = task.error_message or "Unknown error"
-            console.print(f"[bold red]  ❌ Failed:[/bold red] {title_str} [dim]({err_msg})[/dim]")
+            console.print(f"[bold red]  [Failed]:[/bold red] {title_str} [dim]({err_msg})[/dim]")
             return
 
         # Handle active tracks
@@ -99,6 +99,6 @@ def print_tasks_summary(tasks: List[DownloadTask]):
     failed = sum(1 for t in tasks if t.status == DownloadStatus.FAILED)
     
     console.print()
-    console.print(f"[bold green]✨ Download finished: {completed} downloaded, {skipped} skipped (already exist), {failed} failed.[/bold green]")
+    console.print(f"[bold green][Download finished]: {completed} downloaded, {skipped} skipped (already exist), {failed} failed.[/bold green]")
     if failed > 0:
-        console.print(f"[bold red]⚠️ {failed} track(s) failed during download. Re-run command to retry failed tracks.[/bold red]")
+        console.print(f"[bold red][Warning] {failed} track(s) failed during download. Re-run command to retry failed tracks.[/bold red]")

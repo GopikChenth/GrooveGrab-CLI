@@ -29,12 +29,12 @@ def print_banner():
 
 
 def print_error(msg: str):
-    console.print(f"[bold red]❌ Error:[/bold red] {msg}")
+    console.print(f"[bold red][Error][/bold red] {msg}")
 
 
 def print_success(msg: str):
-    console.print(f"[bold green]✨ Success:[/bold green] {msg}")
+    console.print(f"[bold green][Success][/bold green] {msg}")
 
 
 def print_info(msg: str):
-    console.print(f"[bold blue]ℹ️  Info:[/bold blue] {msg}")
+    console.print(f"[bold blue][Info][/bold blue] {msg}")

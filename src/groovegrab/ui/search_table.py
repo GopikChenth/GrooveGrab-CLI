@@ -17,7 +17,7 @@ def display_search_results(tracks: List[TrackInfo]) -> List[TrackInfo]:
         console.print("[yellow]No tracks found matching query.[/yellow]")
         return []
 
-    table = Table(title="🔍 Search Results", show_header=True, header_style="bold magenta")
+    table = Table(title="Search Results", show_header=True, header_style="bold magenta")
     table.add_column("#", style="cyan", width=4)
     table.add_column("Title", style="bold white")
     table.add_column("Artist", style="green")

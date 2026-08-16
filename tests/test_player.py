@@ -1,10 +1,12 @@
 """
-Unit Tests for Synced LRC Parser, Typewriter Animator, and LyricSyncStore
+Unit Tests for Synced LRC Parser, Typewriter Animator, LyricSyncStore, and TimingChain
 """
 
+import numpy as np
 from groovegrab.player.lrc_parser import LrcParser, LrcLine
 from groovegrab.player.typewriter import TypewriterAnimator
 from groovegrab.player.lyric_sync_store import LyricSyncStore
+from groovegrab.player.timing_chain import TimingChain
 
 
 def test_lrc_parsing():
@@ -26,7 +28,7 @@ def test_typewriter_animator():
     animator = TypewriterAnimator()
     line = LrcLine(timestamp_sec=10.0, end_sec=15.0, text="Hello World")
 
-    # Before start timestamp -> empty string (no dull text preview!)
+    # Before start timestamp -> empty string
     rendered_before = animator.render_active_line(line, 5.0)
     assert rendered_before == ""
 
@@ -41,3 +43,22 @@ def test_lyric_sync_store():
     
     saved_offset = store.get_offset("Loser", "Tame Impala")
     assert saved_offset == 1.5
+
+
+def test_timing_chain():
+    tc = TimingChain()
+    pcm = np.ones(22050, dtype=np.float32) * 0.5
+
+    dur = tc.inspect_audio(pcm, sample_rate=22050)
+    assert round(dur, 1) == 1.0
+
+    lyrics = [
+        LrcLine(timestamp_sec=5.0, text="First line"),
+        LrcLine(timestamp_sec=10.0, text="Second line"),
+    ]
+    idx, active = tc.find_active_line(lyrics, 4.0)
+    assert active is None
+
+    idx, active = tc.find_active_line(lyrics, 5.6)
+    assert idx == 0
+    assert active.text == "First line"

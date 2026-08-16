@@ -1,6 +1,6 @@
 """
 Full-Featured CAVA-Style Audio Spectrum Visualizer Engine
-Supports real 100% mathematical FFT spectrum decoding via FFmpeg with graceful, toned-down visualizer height dynamic range.
+Computes real 100% mathematical FFT spectrum and uses TimingChain for synchronization.
 """
 
 import math
@@ -13,6 +13,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 
 from groovegrab.player.themes import Theme, get_theme
+from groovegrab.player.timing_chain import TimingChain
 
 
 class VisualizerMode(str, Enum):
@@ -38,7 +39,7 @@ def next_visualizer_mode(current: VisualizerMode) -> VisualizerMode:
 
 
 class SpectrumDataEngine:
-    """Computes real 100% mathematical FFT frequency spectrum with toned-down graceful CAVA heights."""
+    """Computes real 100% mathematical FFT frequency spectrum with TimingChain integration."""
 
     def __init__(self, num_bars: int = 40):
         self.num_bars = num_bars
@@ -48,9 +49,14 @@ class SpectrumDataEngine:
         self.pcm_data: Optional[np.ndarray] = None
         self.sample_rate: int = 22050
         self.audio_loaded: bool = False
+        self.timing_chain = TimingChain()
+
+    @property
+    def leading_silence_sec(self) -> float:
+        return self.timing_chain.leading_silence_sec
 
     def load_audio_file(self, file_path: Path):
-        """Decode 100% real PCM audio samples using FFmpeg for real mathematical FFT visualizer."""
+        """Decode 100% real PCM audio samples using FFmpeg & run TimingChain inspection."""
         try:
             cmd = ["ffmpeg", "-i", str(file_path), "-f", "s16le", "-ac", "1", "-ar", "22050", "-loglevel", "quiet", "pipe:1"]
             res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -59,6 +65,9 @@ class SpectrumDataEngine:
                 self.pcm_data = raw_int16.astype(np.float32) / 32768.0
                 self.sample_rate = 22050
                 self.audio_loaded = True
+                
+                # Inspect PCM audio through TimingChain
+                self.timing_chain.inspect_audio(self.pcm_data, self.sample_rate)
                 return
         except Exception:
             pass
@@ -71,9 +80,11 @@ class SpectrumDataEngine:
             self.pcm_data = data
             self.sample_rate = sr
             self.audio_loaded = True
+            self.timing_chain.inspect_audio(self.pcm_data, self.sample_rate)
         except Exception:
             self.audio_loaded = False
             self.pcm_data = None
+            self.timing_chain.inspect_audio(None, 22050)
 
     def update(self, current_time_sec: float, num_bars: int, is_playing: bool = True, dt: float = 0.033) -> np.ndarray:
         """Compute frequency bar heights normalized with fluid smoothing."""
@@ -141,7 +152,6 @@ class SpectrumDataEngine:
             
             val = float(np.mean(fft_vals[bin_start:bin_end])) if bin_end > bin_start else 0.0
             
-            # Toned down scaling so visualizer bars move gracefully between 20% - 50% height
             boost = 0.65 + (i / max(1, num_bars)) * 0.35
             norm_val = math.log1p(val * 1.6) * 0.09 * boost
             bands[i] = min(0.70, max(0.0, norm_val))

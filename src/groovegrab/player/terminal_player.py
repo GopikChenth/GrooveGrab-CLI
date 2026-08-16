@@ -1,7 +1,7 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Top-left typewriter lyric displayer with Tap-to-Sync (/) and Micro-Nudge (, and .)
+AI Word-Level Acoustic Timing (Meta MMS_FA) & High-Precision Monotonic Audio Playback
 """
 
 import time
@@ -20,7 +20,7 @@ from groovegrab.player.typewriter import TypewriterAnimator
 from groovegrab.player.visualizer import AudioSpectrumVisualizer, VisualizerMode, next_visualizer_mode
 from groovegrab.player.themes import get_theme, next_theme_name, Theme
 from groovegrab.engines.lyric_fetcher import LyricFetcher
-from groovegrab.player.lyric_sync_store import LyricSyncStore
+from groovegrab.player.timing_chain import TimingChain
 
 console = Console()
 
@@ -44,25 +44,26 @@ class TerminalPlayer:
         self.mode = initial_mode
         self.show_lyrics = True
         self.mirror_mode = False
-        
-        # Load saved song-specific lyric sync offset
-        self.sync_store = LyricSyncStore()
-        self.lyric_offset_sec = self.sync_store.get_offset(self.track_info.title, self.track_info.artist)
-        
-        self.last_offset_key_time = 0.0
-        self.just_synced = False
-        self.sync_notice_time = 0.0
 
         self.driver = AudioDriver()
         self.lrc_parser = LrcParser()
         self.typewriter = TypewriterAnimator()
         self.visualizer = AudioSpectrumVisualizer(num_bars=48)
         
-        # Load audio for real FFT if supported
+        # Load audio for FFT frequencies
         self.visualizer.load_audio_file(self.audio_path)
         
         # Resolve and load synced lyrics
         self.lyrics: List[LrcLine] = self._resolve_and_load_lyrics()
+
+        # Run AI Word-Level Global Forced Alignment for 100% exact acoustic word timestamps
+        if self.lyrics:
+            try:
+                from groovegrab.engines.audio_transcriber import AudioTranscriber
+                transcriber = AudioTranscriber()
+                self.lyrics = transcriber.align_lines(self.audio_path, self.lyrics)
+            except Exception:
+                pass
 
     def _resolve_and_load_lyrics(self) -> List[LrcLine]:
         """Resolves local .lrc files or auto-fetches synced lyrics via LRCLIB."""
@@ -93,30 +94,9 @@ class TerminalPlayer:
 
         return []
 
-    def _tap_to_sync_active_line(self, current_time: float):
-        """Tap-to-Sync: Pressing / aligns active lyric line timestamp with current audio playback position."""
-        if not self.lyrics:
-            return
-
-        active_idx = 0
-        lyric_time = max(0.0, current_time + self.lyric_offset_sec)
-        for idx, line in enumerate(self.lyrics):
-            if lyric_time >= line.timestamp_sec:
-                active_idx = idx
-
-        target_line = self.lyrics[active_idx]
-        
-        # Align lyric offset so target_line start matches current_time exactly
-        self.lyric_offset_sec = target_line.timestamp_sec - current_time
-        
-        # Save updated offset to storage
-        self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
-        self.just_synced = True
-        self.sync_notice_time = time.time()
-
     def start(self):
         if not self.driver.load_and_play(self.audio_path):
-            console.print(f"[bold red]❌ Error: Failed to load audio file {self.audio_path}[/bold red]")
+            console.print(f"[bold red][Error] Failed to load audio file: {self.audio_path}[/bold red]")
             return
 
         with NonBlockingKeyboard() as kbd:
@@ -128,52 +108,38 @@ class TerminalPlayer:
 
                         key = kbd.read_key()
                         if key:
-                            now = time.time()
-                            if key in (',', '<', '.', '>', '/'):
-                                if now - self.last_offset_key_time < 0.15:
-                                    key = None
-                                else:
-                                    self.last_offset_key_time = now
-
-                        if key:
                             if key.lower() == 'q':
                                 break
                             elif key == 'SPACE':
                                 self.driver.toggle_pause()
-                            # / -> Tap-To-Sync: Lock current line timestamp to audio live!
-                            elif key == '/':
-                                self._tap_to_sync_active_line(current_time)
-                            # , / < -> Micro-nudge offset -0.2s earlier
-                            elif key in (',', '<'):
-                                self.lyric_offset_sec -= 0.2
-                                self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
-                            # . / > -> Micro-nudge offset +0.2s later
-                            elif key in ('.', '>'):
-                                self.lyric_offset_sec += 0.2
-                                self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
+                            elif key in ('LEFT', 'h'):
+                                self.driver.seek_relative(-5.0)
+                            elif key in ('RIGHT', 'l'):
+                                self.driver.seek_relative(+5.0)
+                            elif key in ('UP', 'k'):
+                                self.driver.change_volume(+0.1)
+                            elif key in ('DOWN', 'j'):
+                                self.driver.change_volume(-0.1)
+                            elif key.lower() == 'm':
+                                self.driver.toggle_mute()
 
                         time.sleep(0.025)
 
         self.driver.stop()
-        if abs(self.lyric_offset_sec) > 0.01:
-            self.sync_store.save_offset(self.track_info.title, self.track_info.artist, self.lyric_offset_sec)
-
-        console.print(f"[bold green]✔ Playback finished:[/bold green] [white]{self.track_info.display_name()}[/white]")
+        console.print(f"[bold green][Playback finished][/bold green] [white]{self.track_info.display_name()}[/white]")
 
     def _build_screen(self, current_time: float) -> Text:
         theme = get_theme(self.theme_name)
         term_width = max(30, console.size.width or 80)
         term_height = max(10, console.size.height or 24)
 
-        # 1. Top Left Status Header (Single Unified Theme Color Template)
+        # 1. Top Left Status Header
         header_str = self._build_header(current_time, term_width, theme)
         header_lines = [l for l in header_str.split("\n") if l]
 
-        # 2. Top Left Ultra-Fast Typewriter Karaoke Lyrics Line
+        # 2. Top Left Synchronized Typewriter Lyrics Line
         has_lyrics = self.show_lyrics and bool(self.lyrics)
-        lyric_time = max(0.0, current_time + self.lyric_offset_sec)
-            
-        lyrics_str = self._render_lyrics(lyric_time, theme) if has_lyrics else ""
+        lyrics_str = self._render_lyrics(current_time, theme) if has_lyrics else ""
         lyrics_lines = [l for l in lyrics_str.split("\n") if l] if lyrics_str else []
 
         # 3. Maximize CAVA Spectrum Visualizer Height
@@ -205,17 +171,10 @@ class TerminalPlayer:
         return text_obj
 
     def _build_header(self, current_time: float, width: int, theme: Theme) -> str:
-        status_badge = f"[{theme.header}]▶ PLAYING[/{theme.header}]" if not self.driver.is_paused else f"[{theme.header}]⏸ PAUSED[/{theme.header}]"
+        status_badge = f"[{theme.header}]PLAYING[/{theme.header}]" if not self.driver.is_paused else f"[{theme.header}]PAUSED[/{theme.header}]"
         
         vol_pct = int(self.driver.volume * 100)
-        vol_str = f"[{theme.header}]Vol: {vol_pct}%[/{theme.header}]"
-
-        offset_str = ""
-        if self.just_synced and (time.time() - self.sync_notice_time < 2.0):
-            offset_str = f" [{theme.header}][Synced Live! ✓][/{theme.header}]"
-        elif abs(self.lyric_offset_sec) > 0.01:
-            sign = "+" if self.lyric_offset_sec > 0 else ""
-            offset_str = f" [{theme.header}][Sync: {sign}{self.lyric_offset_sec:.1f}s Saved][/{theme.header}]"
+        vol_str = f"[{theme.header}]Vol: {vol_pct}%[/{theme.header}]" if not self.driver.is_muted else f"[{theme.header}]Vol: Muted[/{theme.header}]"
 
         total_dur = self.track_info.duration or 180
         curr_min, curr_sec = int(current_time) // 60, int(current_time) % 60
@@ -227,11 +186,11 @@ class TerminalPlayer:
 
         if width < 60:
             title_short = title[:15] + ".." if len(title) > 15 else title
-            return f"[{theme.header}]> PLAYING TRACK - {title_short} - {artist}[/{theme.header}]  [{theme.header}]{time_str}[/{theme.header}]{offset_str}"
+            return f"[{theme.header}]> PLAYING TRACK - {title_short} - {artist}[/{theme.header}]  [{theme.header}]{time_str}[/{theme.header}]"
 
         progress_ratio = max(0.0, min(1.0, current_time / max(1.0, float(total_dur))))
         
-        fixed_meta_len = len(f"> PLAYING TRACK - {title} - {artist}   {time_str} {vol_str} {offset_str}") + 15
+        fixed_meta_len = len(f"> PLAYING TRACK - {title} - {artist}   {time_str} {vol_str}") + 15
         avail_for_title = max(10, width - fixed_meta_len - 15)
 
         if len(title) > avail_for_title:
@@ -244,10 +203,10 @@ class TerminalPlayer:
         filled_len = int(progress_ratio * bar_len)
         progress_bar = f"[{theme.header}]{'━' * filled_len}●[/{theme.header}][dim {theme.header}]{'─' * max(0, bar_len - filled_len - 1)}[/dim {theme.header}]"
 
-        header_str = f"[{theme.header}]> PLAYING TRACK - {title} - {artist}[/{theme.header}]  {status_badge}  {vol_str}{offset_str}  [{theme.header}]{time_str}[/{theme.header}] {progress_bar}"
+        header_str = f"[{theme.header}]> PLAYING TRACK - {title} - {artist}[/{theme.header}]  {status_badge}  {vol_str}  [{theme.header}]{time_str}[/{theme.header}] {progress_bar}"
 
         if len(Text.from_markup(header_str).plain) > width:
-            header_str = f"[{theme.header}]> PLAYING TRACK - {title} - {artist}[/{theme.header}]  {status_badge}  [{theme.header}]{time_str}[/{theme.header}]{offset_str}"
+            header_str = f"[{theme.header}]> PLAYING TRACK - {title} - {artist}[/{theme.header}]  {status_badge}  [{theme.header}]{time_str}[/{theme.header}]"
 
         return header_str
 
@@ -255,12 +214,12 @@ class TerminalPlayer:
         if not self.lyrics:
             return ""
 
-        active_idx = 0
-        for idx, line in enumerate(self.lyrics):
-            if current_time >= line.timestamp_sec:
-                active_idx = idx
+        timing_chain = getattr(self.visualizer.engine, "timing_chain", TimingChain())
+        idx, active_line = timing_chain.find_active_line(self.lyrics, current_time)
 
-        active_line = self.lyrics[active_idx]
+        if active_line is None:
+            return f" [{theme.header}]>[/{theme.header}] [{theme.header}](Instrumental Intro)[/{theme.header}][{theme.header}]█[/{theme.header}]"
+
         rendered_active = self.typewriter.render_active_line(
             active_line,
             current_time,
@@ -270,4 +229,4 @@ class TerminalPlayer:
         if not rendered_active:
             return ""
 
-        return f" [{theme.header}]>[/{theme.header}] {rendered_active} [{theme.header}]█[/{theme.header}]"
+        return f" [{theme.header}]>[/{theme.header}] {rendered_active}[{theme.header}]█[/{theme.header}]"

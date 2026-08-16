@@ -16,7 +16,7 @@ console = Console()
 
 app = typer.Typer(
     name="groovegrab",
-    help="🚀 GrooveGrab CLI - Modular High-Performance Song & Media Downloader",
+    help="GrooveGrab CLI - Modular High-Performance Song & Media Downloader",
     add_completion=False,
     no_args_is_help=True
 )
