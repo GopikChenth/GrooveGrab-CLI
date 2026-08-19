@@ -1,13 +1,11 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
-Clean, borderless, minimal aesthetic matching native CAVA visualizer
-Instant-start playback, 2-line clean synced lyrics display & bottom full-height CAVA spectrum visualizer.
+Seamless offline playlist queue & single-track playback with real-time 2-line lyrics & bottom CAVA visualizer.
 """
 
 import time
-import threading
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Tuple, Optional
 
 from rich.console import Console
 from rich.live import Live
@@ -25,22 +23,30 @@ from groovegrab.player.timing_chain import TimingChain
 
 console = Console()
 
+PlaylistItem = Tuple[Path, TrackInfo, Optional[Path]]
+
 
 class TerminalPlayer:
-    """Clean Borderless CAVA-Style TUI Audio Player with Real-Time Spectrum Visualizer & 2-Line Synced Lyrics."""
+    """Seamless Offline CAVA Audio Player supporting continuous playlist queues, 2-line lyrics & FFT visualizer."""
 
     def __init__(
         self,
-        audio_path: Path,
-        track_info: TrackInfo,
+        audio_path: Optional[Path] = None,
+        track_info: Optional[TrackInfo] = None,
         lrc_path: Optional[Path] = None,
+        playlist: Optional[List[PlaylistItem]] = None,
+        start_index: int = 0,
         theme_name: str = "cava",
         initial_mode: VisualizerMode = VisualizerMode.BARS,
     ):
-        self.audio_path = audio_path
-        self.track_info = track_info
-        self.lrc_path = lrc_path or audio_path.with_suffix(".lrc")
-        
+        if playlist:
+            self.playlist: List[PlaylistItem] = playlist
+        elif audio_path and track_info:
+            self.playlist = [(audio_path, track_info, lrc_path or audio_path.with_suffix(".lrc"))]
+        else:
+            self.playlist = []
+
+        self.current_index = max(0, min(start_index, len(self.playlist) - 1)) if self.playlist else 0
         self.theme_name = theme_name.lower()
         self.mode = initial_mode
         self.show_lyrics = True
@@ -50,36 +56,29 @@ class TerminalPlayer:
         self.lrc_parser = LrcParser()
         self.typewriter = TypewriterAnimator()
         self.visualizer = AudioSpectrumVisualizer(num_bars=48)
-        
-        # Load audio for FFT frequencies
-        self.visualizer.load_audio_file(self.audio_path)
-        
-        # Resolve and load synced lyrics (offline first, with auto-save)
-        self.lyrics: List[LrcLine] = self._resolve_and_load_lyrics()
+        self.timing_chain = TimingChain()
 
-        # Non-blocking AI word-level forced alignment
-        if self.lyrics:
-            try:
-                from groovegrab.engines.audio_transcriber import AudioTranscriber
-                transcriber = AudioTranscriber()
-                full_text = "\n".join(l.text for l in self.lyrics)
-                cache_path = transcriber._get_cache_path(self.audio_path, full_text)
-                
-                if cache_path.exists():
-                    self.lyrics = transcriber.align_lines(self.audio_path, self.lyrics)
-                else:
-                    def _async_align():
-                        try:
-                            self.lyrics = transcriber.align_lines(self.audio_path, self.lyrics)
-                        except Exception:
-                            pass
-                    t = threading.Thread(target=_async_align, daemon=True)
-                    t.start()
-            except Exception:
-                pass
+        self.audio_path: Optional[Path] = None
+        self.track_info: Optional[TrackInfo] = None
+        self.lrc_path: Optional[Path] = None
+        self.lyrics: List[LrcLine] = []
+
+        if self.playlist:
+            self._load_track(self.current_index)
+
+    def _load_track(self, index: int):
+        if not self.playlist or index < 0 or index >= len(self.playlist):
+            return
+
+        self.current_index = index
+        self.audio_path, self.track_info, self.lrc_path = self.playlist[index]
+        self.visualizer.load_audio_file(self.audio_path)
+        self.lyrics = self._resolve_and_load_lyrics()
 
     def _resolve_and_load_lyrics(self) -> List[LrcLine]:
-        """Resolves local .lrc files offline first or auto-fetches synced lyrics and saves them offline."""
+        if not self.audio_path or not self.track_info:
+            return []
+
         # 1. Check exact .lrc path next to audio file
         if self.lrc_path and self.lrc_path.exists():
             parsed = self.lrc_parser.parse_file(self.lrc_path)
@@ -96,14 +95,13 @@ class TerminalPlayer:
                         self.lrc_path = lrc_candidate
                         return parsed
 
-        # 3. Query online and save offline for future use
+        # 3. Query and cache offline
         fetcher = LyricFetcher()
         synced_text, _ = fetcher.fetch_lyrics(self.track_info)
         if synced_text:
             parsed = self.lrc_parser.parse_text(synced_text)
             if parsed:
                 try:
-                    # Save offline next to the audio file
                     offline_lrc = self.audio_path.with_suffix(".lrc")
                     fetcher.save_lrc_file(offline_lrc, synced_text)
                 except Exception:
@@ -113,47 +111,79 @@ class TerminalPlayer:
         return []
 
     def start(self):
-        if not self.driver.load_and_play(self.audio_path):
-            console.print(f"[bold red][Error] Failed to load audio file: {self.audio_path}[/bold red]")
+        if not self.playlist:
+            console.print("[bold red][Error] No audio tracks in playlist.[/bold red]")
             return
 
         with NonBlockingKeyboard() as kbd:
             with console.screen():
                 with Live(self._build_screen(0.0), console=console, refresh_per_second=30, screen=True) as live:
-                    while self.driver.is_busy():
-                        current_time = self.driver.get_position_sec()
-                        live.update(self._build_screen(current_time))
+                    while True:
+                        if not self.audio_path or not self.driver.load_and_play(self.audio_path):
+                            break
 
-                        key = kbd.read_key()
-                        if key:
-                            if key.lower() == 'q':
+                        track_finished_naturally = False
+                        while True:
+                            # Check if current song finished naturally
+                            if not self.driver.is_busy():
+                                track_finished_naturally = True
                                 break
-                            elif key == 'SPACE':
-                                self.driver.toggle_pause()
-                            elif key in ('LEFT', 'h'):
-                                self.driver.seek_relative(-5.0)
-                            elif key in ('RIGHT', 'l'):
-                                self.driver.seek_relative(+5.0)
-                            elif key in ('UP', 'k'):
-                                self.driver.change_volume(+0.1)
-                            elif key in ('DOWN', 'j'):
-                                self.driver.change_volume(-0.1)
-                            elif key.lower() == 'm':
-                                self.driver.toggle_mute()
-                            elif key.lower() == 't':
-                                self.theme_name = next_theme_name(self.theme_name)
-                            elif key.lower() == 'v':
-                                self.mode = next_visualizer_mode(self.mode)
 
-                        time.sleep(0.025)
+                            current_time = self.driver.get_position_sec()
+                            live.update(self._build_screen(current_time))
+
+                            key = kbd.read_key()
+                            if key:
+                                if key.lower() == 'q' or key == 'ESC':
+                                    self.driver.stop()
+                                    return
+                                elif key == 'SPACE':
+                                    self.driver.toggle_pause()
+                                elif key in ('LEFT', 'h'):
+                                    self.driver.seek_relative(-5.0)
+                                elif key in ('RIGHT', 'l'):
+                                    self.driver.seek_relative(+5.0)
+                                elif key in ('UP', 'k'):
+                                    self.driver.change_volume(+0.1)
+                                elif key in ('DOWN', 'j'):
+                                    self.driver.change_volume(-0.1)
+                                elif key.lower() == 'n':
+                                    # Next track
+                                    if self.current_index + 1 < len(self.playlist):
+                                        self._load_track(self.current_index + 1)
+                                        break
+                                elif key.lower() == 'p':
+                                    # Previous track
+                                    if self.current_index > 0:
+                                        self._load_track(self.current_index - 1)
+                                        break
+                                elif key.lower() == 'm':
+                                    self.driver.toggle_mute()
+                                elif key.lower() == 't':
+                                    self.theme_name = next_theme_name(self.theme_name)
+                                elif key.lower() == 'v':
+                                    self.mode = next_visualizer_mode(self.mode)
+
+                            time.sleep(0.025)
+
+                        # Auto-advance to next track in playlist queue
+                        if track_finished_naturally:
+                            if self.current_index + 1 < len(self.playlist):
+                                self._load_track(self.current_index + 1)
+                            else:
+                                break  # End of playlist
 
         self.driver.stop()
-        console.print(f"[bold green][Playback finished][/bold green] [white]{self.track_info.display_name()}[/white]")
+        if self.track_info:
+            console.print(f"[bold green][Playback finished][/bold green] [white]{self.track_info.display_name()}[/white]")
 
     def _build_screen(self, current_time: float) -> Text:
         theme = get_theme(self.theme_name)
         term_width = max(30, console.size.width or 80)
         term_height = max(10, console.size.height or 24)
+
+        if not self.track_info:
+            return Text.from_markup("  [dim]No track loaded[/dim]")
 
         # 1. Top Status Header
         header_str = self._build_header(current_time, term_width, theme)
@@ -180,14 +210,12 @@ class TerminalPlayer:
             mirror=self.mirror_mode
         )
 
-        # Assemble layout
         body_parts = [header_str]
         if lyrics_str:
             body_parts.append(lyrics_str)
         body_parts.append(viz_output)
 
         full_content = "\n".join(body_parts)
-        
         text_obj = Text.from_markup(full_content)
         text_obj.no_wrap = True
         return text_obj
@@ -206,34 +234,16 @@ class TerminalPlayer:
         title = self.track_info.title
         artist = self.track_info.artist
 
-        if width < 60:
-            title_short = title[:15] + ".." if len(title) > 15 else title
-            return f"[{theme.header}]> PLAYING TRACK - {title_short} - {artist}[/{theme.header}]  [{theme.header}]{time_str}[/{theme.header}]"
+        queue_tag = f"[{self.current_index + 1}/{len(self.playlist)}] " if len(self.playlist) > 1 else ""
 
         progress_ratio = max(0.0, min(1.0, current_time / max(1.0, float(total_dur))))
-        
-        fixed_meta_len = len(f"> PLAYING TRACK - {title} - {artist}   {time_str} {vol_str}") + 15
-        avail_for_title = max(10, width - fixed_meta_len - 15)
-
-        if len(title) > avail_for_title:
-            title = title[:max(8, avail_for_title - 3)] + "..."
-
-        if len(artist) > 15:
-            artist = artist[:12] + "..."
-
-        bar_len = max(6, min(width - len(title) - len(artist) - 45, 20))
+        bar_len = max(6, min(width - len(title) - len(artist) - 45, 18))
         filled_len = int(progress_ratio * bar_len)
         progress_bar = f"[{theme.header}]{'━' * filled_len}●[/{theme.header}][dim {theme.header}]{'─' * max(0, bar_len - filled_len - 1)}[/dim {theme.header}]"
 
-        header_str = f"[{theme.header}]> PLAYING TRACK - {title} - {artist}[/{theme.header}]  {status_badge}  {vol_str}  [{theme.header}]{time_str}[/{theme.header}] {progress_bar}"
-
-        if len(Text.from_markup(header_str).plain) > width:
-            header_str = f"[{theme.header}]> PLAYING TRACK - {title} - {artist}[/{theme.header}]  {status_badge}  [{theme.header}]{time_str}[/{theme.header}]"
-
-        return header_str
+        return f" [{theme.header}]> {queue_tag}PLAYING TRACK - {title} - {artist}[/{theme.header}]  {status_badge}  [{theme.header}]{time_str}[/{theme.header}] {progress_bar}"
 
     def _render_lyrics_2lines(self, current_time: float, theme: Theme) -> str:
-        """Renders precisely 2 lines of lyrics: Line 1 (Active Singing Line), Line 2 (Next Upcoming Preview)."""
         if not self.lyrics:
             return ""
 
@@ -245,8 +255,7 @@ class TerminalPlayer:
             return f"{line1}\n{line2}"
 
         # Find active line
-        timing_chain = getattr(self.visualizer.engine, "timing_chain", TimingChain())
-        idx, active_line = timing_chain.find_active_line(self.lyrics, current_time)
+        idx, active_line = self.timing_chain.find_active_line(self.lyrics, current_time)
 
         if active_line is None or idx is None:
             return ""
@@ -266,7 +275,7 @@ class TerminalPlayer:
         if idx + 1 < len(self.lyrics):
             next_line = self.lyrics[idx + 1]
             gap = next_line.timestamp_sec - active_line.timestamp_sec
-            if not next_line.text.strip() or (gap >= 4.5 and current_time > active_line.timestamp_sec + 3.0):
+            if not next_line.text.strip() or (gap >= 4.5 and current_pos_check(current_time, active_line.timestamp_sec)):
                 line2 = f" [dim {theme.header}]  ♪[/dim {theme.header}]"
             else:
                 line2 = f" [dim {theme.header}]  {next_line.text}[/dim {theme.header}]"
@@ -274,3 +283,7 @@ class TerminalPlayer:
             line2 = f" [dim {theme.header}]  (Outro)[/dim {theme.header}]"
 
         return f"{line1}\n{line2}"
+
+
+def current_pos_check(current_time: float, active_ts: float) -> bool:
+    return current_time > active_ts + 3.0

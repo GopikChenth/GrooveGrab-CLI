@@ -1,5 +1,6 @@
 """
 Multi-threaded Task Queue Execution Manager
+Downloads audio files and automatically saves synchronized .lrc lyrics alongside every track for full playlists and single songs.
 """
 
 import uuid
@@ -66,6 +67,14 @@ class TaskQueueManager:
             if not task.options.overwrite:
                 existing_file = self.downloader.find_existing_file(task.track, task.options)
                 if existing_file:
+                    # Guarantee .lrc exists alongside audio file
+                    if task.options.fetch_lyrics:
+                        lrc_file = existing_file.with_suffix(".lrc")
+                        if not lrc_file.exists():
+                            synced_lrc, _ = self.lyric_fetcher.fetch_lyrics(task.track)
+                            if synced_lrc:
+                                self.lyric_fetcher.save_lrc_file(existing_file, synced_lrc)
+
                     task.status = DownloadStatus.SKIPPED
                     task.output_path = str(existing_file)
                     task.progress = 100.0
@@ -73,7 +82,7 @@ class TaskQueueManager:
                         on_progress(task)
                     return task
 
-            # 1. Downloading
+            # 1. Downloading Audio
             task.status = DownloadStatus.DOWNLOADING
             task.progress = 10.0
             if on_progress:
@@ -92,14 +101,14 @@ class TaskQueueManager:
             file_path = self.downloader.download_track(task.track, task.options, progress_hook=ytdlp_hook)
             task.output_path = str(file_path)
 
-            # 2. Lyrics Fetching
+            # 2. Synced Lyrics Fetching (.lrc saved alongside audio file in playlist folder)
             synced_lrc, plain_lyrics = None, None
             if task.options.fetch_lyrics:
                 synced_lrc, plain_lyrics = self.lyric_fetcher.fetch_lyrics(task.track)
                 if synced_lrc:
                     self.lyric_fetcher.save_lrc_file(file_path, synced_lrc)
 
-            # 3. Tagging
+            # 3. ID3 / Vorbis Metadata & Cover Art Tagging
             if task.options.embed_cover:
                 task.status = DownloadStatus.TAGGING
                 task.progress = 90.0

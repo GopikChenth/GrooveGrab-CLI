@@ -5,7 +5,7 @@
 <p align="center">
   <a href="#quick-start"><img src="https://img.shields.io/badge/python-3.10+-38BDF8.svg?style=flat-square" alt="Python 3.10+"></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/audio%20engine-FFmpeg-10B981.svg?style=flat-square" alt="FFmpeg"></a>
-  <a href="#ai-word-level-lyric-sync"><img src="https://img.shields.io/badge/ai%20alignment-Meta%20MMS_FA-8B5CF6.svg?style=flat-square" alt="Meta MMS_FA"></a>
+  <a href="#key-features"><img src="https://img.shields.io/badge/lyrics-LRCLIB%20%26%20Spotify-8B5CF6.svg?style=flat-square" alt="Synced Lyrics"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="MIT License"></a>
 </p>
 
@@ -13,9 +13,9 @@
 
 ## Overview
 
-**GrooveGrab CLI** is a modular, high-performance music engine and terminal audio player built for power users, audiophiles, and command-line enthusiasts. It combines multi-threaded media downloading with an integrated CAVA spectrum visualizer, AI-powered word-level synced lyrics, and real-time MPRIS (Spotify) live lyrics tracking.
+**GrooveGrab CLI** is a modular, high-performance music engine and terminal audio player built for power users, audiophiles, and command-line enthusiasts. It combines multi-threaded media downloading with an integrated CAVA spectrum visualizer, 2-line real-time synced lyrics, and live Spotify/MPRIS D-Bus tracking.
 
-Whether downloading entire studio discographies, tracking live Spotify lyrics from your terminal, or enjoying music with reactive audio spectrum bars, GrooveGrab delivers an instantaneous, clean, and distraction-free audio experience.
+Whether downloading entire studio discographies with offline `.lrc` lyrics, tracking live Spotify lyrics from your terminal, or enjoying music with reactive audio spectrum bars, GrooveGrab delivers an instantaneous, clean, and distraction-free audio experience.
 
 ---
 
@@ -24,8 +24,8 @@ Whether downloading entire studio discographies, tracking live Spotify lyrics fr
 - ⚡ **Multi-Provider Ingestion**: Download songs and playlists from YouTube Music, Spotify (metadata matching), JioSaavn, SoundCloud, and direct media URLs.
 - 🎛️ **Studio Audio Transcoding**: Convert audio streams into high-bitrate **320kbps MP3**, lossless **FLAC**, **M4A**, or **OPUS** powered by FFmpeg.
 - 🎨 **Automatic HD Tagging**: Automatically embeds high-resolution album cover artwork, artist, album, track numbers, release year, and genres via Mutagen.
+- 📝 **Offline Synced Lyrics (.lrc)**: Automatically downloads and saves synchronized `.lrc` lyrics alongside audio files for instant offline playback.
 - 📡 **Live Spotify &amp; MPRIS Lyrics**: Listens to active Spotify or Linux media playback over D-Bus (`MPRIS2`), tracking real-time position with continuous scrolling lyrics (`groovegrab lyrics`).
-- 🧠 **AI Word-Level Lyric Sync**: Uses Meta AI's **MMS_FA** forced alignment model and vocal-formant filtering (`300Hz–3400Hz`) to sync lyrics word-by-word with millisecond precision.
 - 📊 **CAVA Spectrum Visualizer**: Full-terminal mathematical FFT audio visualizer featuring multiple modes (*Bars*, *Braille*, *Waveform*, *Mirror*, *Particles*) across 9 curated color themes.
 - 📁 **Smart Playlist Subfolders**: Automatically categorizes playlists and albums into dedicated folders while skipping already-downloaded tracks.
 - ⚙️ **Interactive Setup Wizard**: Built-in interactive terminal wizard (`groovegrab setup`) with arrow-key menus for zero-friction configuration.
@@ -71,6 +71,21 @@ pip install -e .
 
 ## Usage Guide
 
+### 🎵 Play with CAVA Visualizer &amp; Synced Lyrics
+
+Launch the full-screen terminal player with live audio spectrum and real-time 2-line synced lyrics (auto-downloads if not cached locally):
+
+```bash
+# Play by song name or local file
+groovegrab play "The Weeknd - Blinding Lights"
+
+# Play an entire downloaded folder / playlist seamlessly
+groovegrab play ~/Downloads/GrooveGrab
+
+# Play local audio file with custom visualizer theme and mode
+groovegrab play "path/to/song.mp3" --theme cyberpunk --mode braille
+```
+
 ### 📡 Live Spotify &amp; MPRIS Synced Lyrics
 
 Connect directly to your active Spotify (or any Linux MPRIS player) to stream live synchronized scrolling lyrics in your terminal:
@@ -79,28 +94,17 @@ Connect directly to your active Spotify (or any Linux MPRIS player) to stream li
 # Live track Spotify lyrics in real time
 groovegrab lyrics
 
-# Or use the short alias
+# Or use the quick aliases
 groovegrab spotify
+groovegrab sync
 
 # Target a specific player with custom theme
 groovegrab lyrics --player spotify --theme cyberpunk
 ```
 
-### 🎵 Play with CAVA Visualizer &amp; Synced Lyrics
-
-Launch the full-screen terminal player with live audio spectrum and real-time typewriter lyrics (auto-downloads if not cached locally):
-
-```bash
-# Play by song name or search query
-groovegrab play "The Weeknd - Blinding Lights"
-
-# Play local audio file with custom visualizer theme and mode
-groovegrab play "path/to/song.mp3" --theme cyberpunk --mode braille
-```
-
 ### 📥 Download Songs &amp; Playlists
 
-Download individual tracks, entire albums, or full playlists:
+Download individual tracks, entire albums, or full playlists with offline `.lrc` lyrics:
 
 ```bash
 # Download from Spotify, YouTube Music, or direct link
@@ -147,7 +151,8 @@ During playback in `groovegrab play` or `groovegrab lyrics`, control audio and v
 | Key | Action |
 | :--- | :--- |
 | <kbd>Space</kbd> | **Play / Pause** toggle |
-| <kbd>←</kbd> / <kbd>→</kbd> *(or <kbd>h</kbd> / <kbd>l</kbd>)* | **Seek** 5 seconds backward / forward *(or Prev/Next track in lyrics mode)* |
+| <kbd>n</kbd> / <kbd>p</kbd> | **Next / Previous track in queue** |
+| <kbd>←</kbd> / <kbd>→</kbd> *(or <kbd>h</kbd> / <kbd>l</kbd>)* | **Seek** 5 seconds backward / forward |
 | <kbd>↑</kbd> / <kbd>↓</kbd> *(or <kbd>k</kbd> / <kbd>j</kbd>)* | **Volume** Up / Down (10% increments) |
 | <kbd>m</kbd> | **Mute / Unmute** audio |
 | <kbd>v</kbd> | **Cycle Visualizer Mode** (`bars` ➔ `braille` ➔ `wave` ➔ `mirror` ➔ `particles`) |
