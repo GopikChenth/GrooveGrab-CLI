@@ -21,15 +21,15 @@ Whether downloading entire studio discographies with offline `.lrc` lyrics, trac
 
 ## Key Features
 
-- ⚡ **Multi-Provider Ingestion**: Download songs and playlists from YouTube Music, Spotify (metadata matching), JioSaavn, SoundCloud, and direct media URLs.
-- 🎛️ **Studio Audio Transcoding**: Convert audio streams into high-bitrate **320kbps MP3**, lossless **FLAC**, **M4A**, or **OPUS** powered by FFmpeg.
-- 🎨 **Automatic HD Tagging**: Automatically embeds high-resolution album cover artwork, artist, album, track numbers, release year, and genres via Mutagen.
-- 📝 **Offline Synced Lyrics (.lrc)**: Automatically downloads and saves synchronized `.lrc` lyrics alongside audio files for instant offline playback.
-- 📜 **2-Line Couplet (CLR) Teleprompter**: Zero dull preview text or spoilers. Line 1 types ➔ Line 2 types below it ➔ Screen clears for the next couplet in sync with singing tempo.
-- 📡 **Live Spotify &amp; MPRIS Lyrics**: Listens to active Spotify or Linux media playback over D-Bus (`MPRIS2`), tracking real-time position with continuous scrolling lyrics (`groovegrab lyrics`).
-- 📊 **CAVA Spectrum Visualizer**: Full-terminal mathematical FFT audio visualizer featuring multiple modes (*Bars*, *Braille*, *Waveform*, *Mirror*, *Particles*) across 9 curated color themes.
-- 📁 **Smart Playlist Subfolders**: Automatically categorizes playlists and albums into dedicated folders while skipping already-downloaded tracks.
-- ⚙️ **Interactive Setup Wizard with Theme Picker**: Built-in interactive terminal wizard (`groovegrab setup`) to configure directories, formats, bitrates, and default visualizer themes.
+- **Multi-Provider Ingestion**: Download songs and playlists from YouTube Music, Spotify (metadata matching), JioSaavn, SoundCloud, and direct media URLs.
+- **Studio Audio Transcoding**: Convert audio streams into high-bitrate **320kbps MP3**, lossless **FLAC**, **M4A**, or **OPUS** powered by FFmpeg.
+- **Automatic HD Tagging**: Automatically embeds high-resolution album cover artwork, artist, album, track numbers, release year, and genres via Mutagen.
+- **Offline Synced Lyrics (.lrc)**: Automatically downloads and saves synchronized `.lrc` lyrics alongside audio files for instant offline playback.
+- **2-Line Couplet (CLR) Teleprompter**: Zero dull preview text or spoilers. Line 1 types -> Line 2 types below it -> Screen clears for the next couplet in sync with singing tempo.
+- **Live Spotify &amp; MPRIS Lyrics**: Listens to active Spotify or Linux media playback over D-Bus (`MPRIS2`), tracking real-time position with continuous scrolling lyrics (`groovegrab lyrics`).
+- **CAVA Spectrum Visualizer**: Full-terminal mathematical FFT audio visualizer featuring multiple modes (*Bars*, *Braille*, *Waveform*, *Mirror*, *Particles*) across 9 curated color themes.
+- **Smart Playlist Subfolders**: Automatically categorizes playlists and albums into dedicated folders while skipping already-downloaded tracks.
+- **Interactive Setup Wizard with Theme Picker**: Built-in interactive terminal wizard (`groovegrab setup`) to configure directories, formats, bitrates, and default visualizer themes.
 
 ---
 
@@ -72,7 +72,7 @@ pip install -e .
 
 ## Usage Guide
 
-### 🎵 Play with CAVA Visualizer &amp; 2-Line Couplet Lyrics
+### Play with CAVA Visualizer &amp; 2-Line Couplet Lyrics
 
 Launch the full-screen terminal player with live audio spectrum and real-time 2-line couplet lyrics (auto-downloads if not cached locally):
 
@@ -87,7 +87,7 @@ groovegrab play ~/Downloads/GrooveGrab
 groovegrab play "path/to/song.mp3" --theme cyberpunk --mode braille
 ```
 
-### 📡 Live Spotify &amp; MPRIS Synced Lyrics
+### Live Spotify &amp; MPRIS Synced Lyrics
 
 Connect directly to your active Spotify (or any Linux MPRIS player) to stream live synchronized scrolling lyrics in your terminal:
 
@@ -103,7 +103,7 @@ groovegrab sync
 groovegrab lyrics --player spotify --theme cyberpunk
 ```
 
-### 📥 Download Songs &amp; Playlists
+### Download Songs &amp; Playlists
 
 Download individual tracks, entire albums, or full playlists with offline `.lrc` lyrics:
 
@@ -115,7 +115,7 @@ groovegrab dl "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
 groovegrab dl "Tame Impala - Let It Happen" --format flac
 ```
 
-### 🔍 Interactive Song Search
+### Interactive Song Search
 
 Search songs across providers and interactively select tracks to download:
 
@@ -123,7 +123,7 @@ Search songs across providers and interactively select tracks to download:
 groovegrab search "Daft Punk - Get Lucky"
 ```
 
-### ⚙️ Interactive Configuration Wizard &amp; Theme Customization
+### Interactive Configuration Wizard &amp; Theme Customization
 
 Configure default download directories, audio formats, bitrates, lyrics fetching, and default player themes:
 
@@ -135,7 +135,7 @@ groovegrab setup
 groovegrab config --theme synthwave --dir ~/Music/GrooveGrab --format mp3 --bitrate 320k --concurrent 4
 ```
 
-### 📜 Download Queue &amp; History
+### Download Queue &amp; History
 
 Inspect recent downloads and status logs:
 
@@ -145,7 +145,7 @@ groovegrab queue --limit 25
 
 ---
 
-## 🎹 Terminal Player Hotkeys
+## Terminal Player Hotkeys
 
 During playback in `groovegrab play` or `groovegrab lyrics`, control audio and visualizer using interactive keyboard shortcuts:
 
@@ -153,31 +153,31 @@ During playback in `groovegrab play` or `groovegrab lyrics`, control audio and v
 | :--- | :--- |
 | <kbd>Space</kbd> | **Play / Pause** toggle |
 | <kbd>n</kbd> / <kbd>p</kbd> | **Next / Previous track in queue** |
-| <kbd>←</kbd> / <kbd>→</kbd> *(or <kbd>h</kbd> / <kbd>l</kbd>)* | **Seek** 5 seconds backward / forward |
-| <kbd>↑</kbd> / <kbd>↓</kbd> *(or <kbd>k</kbd> / <kbd>j</kbd>)* | **Volume** Up / Down (10% increments) |
+| <kbd>&larr;</kbd> / <kbd>&rarr;</kbd> *(or <kbd>h</kbd> / <kbd>l</kbd>)* | **Seek** 5 seconds backward / forward |
+| <kbd>&uarr;</kbd> / <kbd>&darr;</kbd> *(or <kbd>k</kbd> / <kbd>j</kbd>)* | **Volume** Up / Down (10% increments) |
 | <kbd>m</kbd> | **Mute / Unmute** audio |
-| <kbd>v</kbd> | **Cycle Visualizer Mode** (`bars` ➔ `braille` ➔ `wave` ➔ `mirror` ➔ `particles`) |
+| <kbd>v</kbd> | **Cycle Visualizer Mode** (`bars` -> `braille` -> `wave` -> `mirror` -> `particles`) |
 | <kbd>t</kbd> | **Cycle Theme** (`cava`, `cyberpunk`, `matrix`, `fire`, `sunset`, `ocean`, `aurora`, `synthwave`, `monochrome`) |
 | <kbd>q</kbd> / <kbd>Esc</kbd> | **Quit Player** |
 
 ---
 
-## 🎨 Visualizer Themes &amp; Modes
+## Visualizer Themes &amp; Modes
 
 GrooveGrab features 9 high-contrast color themes and 5 visualization algorithms:
 
 ### Modes
-- `bars` — Multi-row vertical equalizer with smooth IIR peak smoothing
-- `braille` — High-density 8-dot Unicode braille curve rendering
-- `wave` — Real-time continuous mathematical sine waveform oscilloscope
-- `mirror` — Center-split dual stereo spectrum
-- `particles` — Floating ambient frequency particles
+- `bars` - Multi-row vertical equalizer with smooth IIR peak smoothing
+- `braille` - High-density 8-dot Unicode braille curve rendering
+- `wave` - Real-time continuous mathematical sine waveform oscilloscope
+- `mirror` - Center-split dual stereo spectrum
+- `particles` - Floating ambient frequency particles
 
 ### Themes
-`cava` • `cyberpunk` • `matrix` • `fire` • `sunset` • `ocean` • `aurora` • `synthwave` • `monochrome`
+`cava` | `cyberpunk` | `matrix` | `fire` | `sunset` | `ocean` | `aurora` | `synthwave` | `monochrome`
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.

@@ -72,9 +72,9 @@
   <!-- Left Hero Column -->
   <g transform="translate(56, 54)">
     <!-- Version & Engine Badge -->
-    <rect width="275" height="30" rx="15" fill="url(#badge-pill)" stroke="#00F0FF" stroke-opacity="0.3" stroke-width="1"/>
+    <rect width="250" height="30" rx="15" fill="url(#badge-pill)" stroke="#00F0FF" stroke-opacity="0.3" stroke-width="1"/>
     <circle cx="15" cy="15" r="4.5" fill="#00F0FF"/>
-    <text x="28" y="19.5" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" letter-spacing="1">⚡ v1.0.0 • CLI AUDIO ENGINE</text>
+    <text x="28" y="19.5" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" letter-spacing="1">v1.0.0 • CLI AUDIO ENGINE</text>
 
     <!-- Main Title -->
     <text x="0" y="86" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="46" font-weight="900" letter-spacing="-1.2">GrooveGrab <tspan fill="url(#brand-grad)">CLI</tspan></text>
@@ -87,14 +87,14 @@
 
     <!-- Feature Pill Badges -->
     <g transform="translate(0, 192)">
-      <rect width="124" height="32" rx="8" fill="#111A2C" stroke="#1E2D4A" stroke-width="1"/>
-      <text x="14" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5" font-weight="600">⚡ Multi-Source</text>
+      <rect width="110" height="32" rx="8" fill="#111A2C" stroke="#1E2D4A" stroke-width="1"/>
+      <text x="14" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5" font-weight="600">Multi-Source</text>
 
-      <rect x="134" width="138" height="32" rx="8" fill="#111A2C" stroke="#1E2D4A" stroke-width="1"/>
-      <text x="148" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5" font-weight="600">📊 CAVA Visualizer</text>
+      <rect x="120" width="128" height="32" rx="8" fill="#111A2C" stroke="#1E2D4A" stroke-width="1"/>
+      <text x="134" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5" font-weight="600">CAVA Visualizer</text>
 
-      <rect x="282" width="136" height="32" rx="8" fill="#111A2C" stroke="#1E2D4A" stroke-width="1"/>
-      <text x="296" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5" font-weight="600">📜 2-Line Couplet</text>
+      <rect x="258" width="122" height="32" rx="8" fill="#111A2C" stroke="#1E2D4A" stroke-width="1"/>
+      <text x="272" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5" font-weight="600">2-Line Couplet</text>
     </g>
 
     <!-- Quick Start Command Box -->
