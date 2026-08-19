@@ -5,7 +5,7 @@
 <p align="center">
   <a href="#quick-start"><img src="https://img.shields.io/badge/python-3.10+-38BDF8.svg?style=flat-square" alt="Python 3.10+"></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/audio%20engine-FFmpeg-10B981.svg?style=flat-square" alt="FFmpeg"></a>
-  <a href="#key-features"><img src="https://img.shields.io/badge/lyrics-LRCLIB%20%26%20Spotify-8B5CF6.svg?style=flat-square" alt="Synced Lyrics"></a>
+  <a href="#key-features"><img src="https://img.shields.io/badge/lyrics-2--Line%20Couplet%20CLR-8B5CF6.svg?style=flat-square" alt="2-Line Couplet CLR"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="MIT License"></a>
 </p>
 
@@ -13,7 +13,7 @@
 
 ## Overview
 
-**GrooveGrab CLI** is a modular, high-performance music engine and terminal audio player built for power users, audiophiles, and command-line enthusiasts. It combines multi-threaded media downloading with an integrated CAVA spectrum visualizer, 2-line real-time synced lyrics, and live Spotify/MPRIS D-Bus tracking.
+**GrooveGrab CLI** is a modular, high-performance music engine and terminal audio player built for power users, audiophiles, and command-line enthusiasts. It combines multi-threaded media downloading with an integrated CAVA spectrum visualizer, a distraction-free **2-line couplet (CLR) karaoke lyric teleprompter**, and real-time Spotify/MPRIS D-Bus tracking.
 
 Whether downloading entire studio discographies with offline `.lrc` lyrics, tracking live Spotify lyrics from your terminal, or enjoying music with reactive audio spectrum bars, GrooveGrab delivers an instantaneous, clean, and distraction-free audio experience.
 
@@ -25,10 +25,11 @@ Whether downloading entire studio discographies with offline `.lrc` lyrics, trac
 - 🎛️ **Studio Audio Transcoding**: Convert audio streams into high-bitrate **320kbps MP3**, lossless **FLAC**, **M4A**, or **OPUS** powered by FFmpeg.
 - 🎨 **Automatic HD Tagging**: Automatically embeds high-resolution album cover artwork, artist, album, track numbers, release year, and genres via Mutagen.
 - 📝 **Offline Synced Lyrics (.lrc)**: Automatically downloads and saves synchronized `.lrc` lyrics alongside audio files for instant offline playback.
+- 📜 **2-Line Couplet (CLR) Teleprompter**: Zero dull preview text or spoilers. Line 1 types ➔ Line 2 types below it ➔ Screen clears for the next couplet in sync with singing tempo.
 - 📡 **Live Spotify &amp; MPRIS Lyrics**: Listens to active Spotify or Linux media playback over D-Bus (`MPRIS2`), tracking real-time position with continuous scrolling lyrics (`groovegrab lyrics`).
 - 📊 **CAVA Spectrum Visualizer**: Full-terminal mathematical FFT audio visualizer featuring multiple modes (*Bars*, *Braille*, *Waveform*, *Mirror*, *Particles*) across 9 curated color themes.
 - 📁 **Smart Playlist Subfolders**: Automatically categorizes playlists and albums into dedicated folders while skipping already-downloaded tracks.
-- ⚙️ **Interactive Setup Wizard**: Built-in interactive terminal wizard (`groovegrab setup`) with arrow-key menus for zero-friction configuration.
+- ⚙️ **Interactive Setup Wizard with Theme Picker**: Built-in interactive terminal wizard (`groovegrab setup`) to configure directories, formats, bitrates, and default visualizer themes.
 
 ---
 
@@ -71,9 +72,9 @@ pip install -e .
 
 ## Usage Guide
 
-### 🎵 Play with CAVA Visualizer &amp; Synced Lyrics
+### 🎵 Play with CAVA Visualizer &amp; 2-Line Couplet Lyrics
 
-Launch the full-screen terminal player with live audio spectrum and real-time 2-line synced lyrics (auto-downloads if not cached locally):
+Launch the full-screen terminal player with live audio spectrum and real-time 2-line couplet lyrics (auto-downloads if not cached locally):
 
 ```bash
 # Play by song name or local file
@@ -122,16 +123,16 @@ Search songs across providers and interactively select tracks to download:
 groovegrab search "Daft Punk - Get Lucky"
 ```
 
-### ⚙️ Interactive Configuration Wizard
+### ⚙️ Interactive Configuration Wizard &amp; Theme Customization
 
-Configure default download directories, audio formats, bitrates, lyrics fetching, and concurrent downloads:
+Configure default download directories, audio formats, bitrates, lyrics fetching, and default player themes:
 
 ```bash
-# Run interactive setup wizard
+# Run interactive setup wizard with theme picker
 groovegrab setup
 
 # Or manage settings via CLI flags
-groovegrab config --dir ~/Music/GrooveGrab --format mp3 --bitrate 320k --concurrent 4
+groovegrab config --theme synthwave --dir ~/Music/GrooveGrab --format mp3 --bitrate 320k --concurrent 4
 ```
 
 ### 📜 Download Queue &amp; History

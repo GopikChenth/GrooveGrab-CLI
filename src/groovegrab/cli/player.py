@@ -1,6 +1,6 @@
 """
 Player Subcommand Handler (`groovegrab play`)
-Seamlessly plays local/downloaded tracks, offline playlist folders, or live-tracks Spotify with 2-line lyrics & CAVA visualizer.
+Seamlessly plays local/downloaded tracks, offline playlist folders, or live-tracks Spotify with 2-line couplet lyrics & CAVA visualizer.
 """
 
 from pathlib import Path
@@ -59,14 +59,15 @@ def _search_local_library(target: str, base_dir: Path) -> List[PlaylistItem]:
 @app.callback(invoke_without_command=True)
 def play_command(
     target: Optional[str] = typer.Argument(None, help="Song title, URL, local folder/file, or omit to auto-play local tracks / Spotify"),
-    theme: str = typer.Option("cava", "--theme", "-t", help="Player theme (cava, cyberpunk, matrix, fire, sunset, ocean, aurora, synthwave, monochrome)"),
+    theme: Optional[str] = typer.Option(None, "--theme", "-t", help="Player theme (cava, cyberpunk, matrix, fire, sunset, ocean, aurora, synthwave, monochrome)"),
     mode: str = typer.Option("bars", "--mode", "-m", help="Visualizer mode (bars, braille, wave, mirror, particles)"),
     spotify: bool = typer.Option(False, "--spotify", "-s", help="Attach to live Spotify / MPRIS playback"),
 ):
-    """Play songs with real-time CAVA TUI audio spectrum visualizer & 2-line synced Karaoke lyrics."""
+    """Play songs with real-time CAVA TUI audio spectrum visualizer & 2-line couplet synced Karaoke lyrics."""
     config_mgr = ConfigManager()
     cfg = config_mgr.get()
     download_dir = Path(cfg.download_dir)
+    selected_theme = (theme or cfg.player_theme).lower()
 
     try:
         viz_mode = VisualizerMode(mode.lower())
@@ -80,7 +81,7 @@ def play_command(
         if spotify or (players and any("spotify" in p.lower() for p in players)):
             mpris_player = MprisLiveLyricsPlayer(
                 player_name="spotify" if spotify else players[0],
-                theme_name=theme,
+                theme_name=selected_theme,
                 initial_mode=viz_mode
             )
             mpris_player.start()
@@ -93,7 +94,7 @@ def play_command(
             player = TerminalPlayer(
                 playlist=playlist,
                 start_index=0,
-                theme_name=theme,
+                theme_name=selected_theme,
                 initial_mode=viz_mode
             )
             player.start()
@@ -118,7 +119,7 @@ def play_command(
         player = TerminalPlayer(
             playlist=playlist,
             start_index=0,
-            theme_name=theme,
+            theme_name=selected_theme,
             initial_mode=viz_mode
         )
         player.start()
@@ -138,7 +139,7 @@ def play_command(
         player = TerminalPlayer(
             playlist=playlist,
             start_index=start_idx,
-            theme_name=theme,
+            theme_name=selected_theme,
             initial_mode=viz_mode
         )
         player.start()
@@ -150,7 +151,7 @@ def play_command(
         player = TerminalPlayer(
             playlist=local_matches,
             start_index=0,
-            theme_name=theme,
+            theme_name=selected_theme,
             initial_mode=viz_mode
         )
         player.start()
@@ -195,7 +196,7 @@ def play_command(
     player = TerminalPlayer(
         playlist=playlist,
         start_index=0,
-        theme_name=theme,
+        theme_name=selected_theme,
         initial_mode=viz_mode
     )
     player.start()

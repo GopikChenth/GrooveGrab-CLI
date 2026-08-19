@@ -1,6 +1,6 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
-Seamless offline playlist queue & single-track playback with real-time 2-line lyrics & bottom CAVA visualizer.
+Seamless offline playlist queue & single-track playback with real-time 2-line couplet lyrics (CLR between pairs) & bottom CAVA visualizer.
 """
 
 import time
@@ -27,7 +27,7 @@ PlaylistItem = Tuple[Path, TrackInfo, Optional[Path]]
 
 
 class TerminalPlayer:
-    """Seamless Offline CAVA Audio Player supporting continuous playlist queues, 2-line lyrics & FFT visualizer."""
+    """Seamless Offline CAVA Audio Player supporting continuous playlist queues, 2-line couplet lyrics & FFT visualizer."""
 
     def __init__(
         self,
@@ -124,7 +124,6 @@ class TerminalPlayer:
 
                         track_finished_naturally = False
                         while True:
-                            # Check if current song finished naturally
                             if not self.driver.is_busy():
                                 track_finished_naturally = True
                                 break
@@ -148,12 +147,10 @@ class TerminalPlayer:
                                 elif key in ('DOWN', 'j'):
                                     self.driver.change_volume(-0.1)
                                 elif key.lower() == 'n':
-                                    # Next track
                                     if self.current_index + 1 < len(self.playlist):
                                         self._load_track(self.current_index + 1)
                                         break
                                 elif key.lower() == 'p':
-                                    # Previous track
                                     if self.current_index > 0:
                                         self._load_track(self.current_index - 1)
                                         break
@@ -166,12 +163,11 @@ class TerminalPlayer:
 
                             time.sleep(0.025)
 
-                        # Auto-advance to next track in playlist queue
                         if track_finished_naturally:
                             if self.current_index + 1 < len(self.playlist):
                                 self._load_track(self.current_index + 1)
                             else:
-                                break  # End of playlist
+                                break
 
         self.driver.stop()
         if self.track_info:
@@ -189,10 +185,10 @@ class TerminalPlayer:
         header_str = self._build_header(current_time, term_width, theme)
         header_lines = [l for l in header_str.split("\n") if l]
 
-        # 2. Exactly 2 Lines of Synchronized Lyrics (Active + Upcoming Preview)
+        # 2. Exactly 2 Lines of Couplet Lyrics (Line 1 -> Line 2 -> CLR)
         has_lyrics = self.show_lyrics and bool(self.lyrics)
-        lyrics_str = self._render_lyrics_2lines(current_time, theme) if has_lyrics else ""
-        lyrics_lines = [l for l in lyrics_str.split("\n") if l] if lyrics_str else []
+        lyrics_str = self._render_lyrics_2lines(current_time, theme) if has_lyrics else " \n "
+        lyrics_lines = lyrics_str.split("\n") if lyrics_str else []
 
         # 3. Maximize CAVA Spectrum Visualizer Height for the Bottom Area
         reserved_lines = len(header_lines) + len(lyrics_lines)
@@ -244,46 +240,50 @@ class TerminalPlayer:
         return f" [{theme.header}]> {queue_tag}PLAYING TRACK - {title} - {artist}[/{theme.header}]  {status_badge}  [{theme.header}]{time_str}[/{theme.header}] {progress_bar}"
 
     def _render_lyrics_2lines(self, current_time: float, theme: Theme) -> str:
+        """
+        Renders exactly 2 lines in couplets (Pairs) with clear on transition:
+        - Couplet 1: Line 1 types -> Line 2 types below it while Line 1 stays -> CLR!
+        - Couplet 2: Line 3 types -> Line 4 types below it while Line 3 stays -> CLR!
+        - Zero dull preview text anywhere.
+        """
         if not self.lyrics:
-            return ""
+            return " \n "
 
-        # Check if before first lyric (Intro)
+        # 1. Before first lyric: Both rows blank (no dull text)
         if current_time < self.lyrics[0].timestamp_sec:
-            first_preview = self.lyrics[0].text if self.lyrics else ""
-            line1 = f" [{theme.header}]>[/{theme.header}] [{theme.header}]♪ (Instrumental Intro)[/{theme.header}][{theme.header}]█[/{theme.header}]"
-            line2 = f" [dim {theme.header}]  {first_preview}[/dim {theme.header}]" if first_preview else " [dim]  ♪[/dim]"
-            return f"{line1}\n{line2}"
+            return " \n "
 
-        # Find active line
-        idx, active_line = self.timing_chain.find_active_line(self.lyrics, current_time)
+        # 2. Find active line index
+        active_idx = 0
+        for idx, line in enumerate(self.lyrics):
+            if current_time >= line.timestamp_sec:
+                active_idx = idx
 
-        if active_line is None or idx is None:
-            return ""
+        # Couplet pair base index (0, 2, 4, 6, ...)
+        pair_start = (active_idx // 2) * 2
+        line_top = self.lyrics[pair_start]
+        line_bottom = self.lyrics[pair_start + 1] if pair_start + 1 < len(self.lyrics) else None
 
-        # Line 1: Active singing line with typewriter word reveal
-        rendered_active = self.typewriter.render_active_line(
-            active_line,
-            current_time,
-            active_color=f"{theme.header}"
-        )
-        if not rendered_active:
-            line1 = f" [{theme.header}]>[/{theme.header}] [{theme.header}]{active_line.text}[/{theme.header}][{theme.header}]█[/{theme.header}]"
+        if active_idx == pair_start:
+            # First line of couplet is active and typing; second row is blank
+            rendered_top = self.typewriter.render_active_line(
+                line_top,
+                current_time,
+                active_color=f"{theme.header}"
+            )
+            line1 = f" [{theme.header}]>[/{theme.header}] {rendered_top}[{theme.header}]█[/{theme.header}]"
+            line2 = " "
         else:
-            line1 = f" [{theme.header}]>[/{theme.header}] {rendered_active}[{theme.header}]█[/{theme.header}]"
-
-        # Line 2: Next upcoming preview line
-        if idx + 1 < len(self.lyrics):
-            next_line = self.lyrics[idx + 1]
-            gap = next_line.timestamp_sec - active_line.timestamp_sec
-            if not next_line.text.strip() or (gap >= 4.5 and current_pos_check(current_time, active_line.timestamp_sec)):
-                line2 = f" [dim {theme.header}]  ♪[/dim {theme.header}]"
+            # First line of couplet completed; second line is active and typing below it
+            line1 = f"   [{theme.header}]{line_top.text}[/{theme.header}]"
+            if line_bottom:
+                rendered_bottom = self.typewriter.render_active_line(
+                    line_bottom,
+                    current_time,
+                    active_color=f"{theme.header}"
+                )
+                line2 = f" [{theme.header}]>[/{theme.header}] {rendered_bottom}[{theme.header}]█[/{theme.header}]"
             else:
-                line2 = f" [dim {theme.header}]  {next_line.text}[/dim {theme.header}]"
-        else:
-            line2 = f" [dim {theme.header}]  (Outro)[/dim {theme.header}]"
+                line2 = " "
 
         return f"{line1}\n{line2}"
-
-
-def current_pos_check(current_time: float, active_ts: float) -> bool:
-    return current_time > active_ts + 3.0

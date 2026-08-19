@@ -20,6 +20,7 @@ class GrooveGrabConfig(BaseModel):
     fetch_lyrics: bool = True
     output_template: str = "{artist}/{album}/{track_number} - {title}.{ext}"
     concurrent_downloads: int = Field(default=3, ge=1, le=16)
+    player_theme: str = "cava"
     spotify_client_id: Optional[str] = None
     spotify_client_secret: Optional[str] = None
 

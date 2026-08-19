@@ -1,169 +1,217 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 440" width="100%" height="100%" role="img" aria-labelledby="hero-title hero-desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 460" width="100%" height="100%" role="img" aria-labelledby="hero-title hero-desc">
   <title id="hero-title">GrooveGrab CLI - Modular Music Downloader &amp; CAVA Audio Player</title>
-  <desc id="hero-desc">High-performance CLI music downloader and terminal CAVA audio visualizer with AI-powered word-level synced lyrics.</desc>
+  <desc id="hero-desc">High-performance CLI music downloader and terminal CAVA audio visualizer with 2-line couplet synchronized lyrics.</desc>
 
   <defs>
-    <!-- Background Gradient -->
-    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#080C14"/>
-      <stop offset="50%" stop-color="#0D1322"/>
-      <stop offset="100%" stop-color="#06090F"/>
+    <!-- Background Canvas Gradient -->
+    <linearGradient id="bg-canvas" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070A12"/>
+      <stop offset="45%" stop-color="#0B1220"/>
+      <stop offset="100%" stop-color="#05070D"/>
     </linearGradient>
+
+    <!-- Ambient Radial Glows -->
+    <radialGradient id="glow-cyan" cx="15%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#00F0FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-purple" cx="85%" cy="80%" r="60%">
+      <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0"/>
+    </radialGradient>
 
     <!-- Terminal Window Gradient -->
-    <linearGradient id="term-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#141D2F"/>
-      <stop offset="100%" stop-color="#0B101D"/>
+    <linearGradient id="term-window" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#111A2E"/>
+      <stop offset="100%" stop-color="#090E1A"/>
     </linearGradient>
 
-    <!-- Accent Gradients -->
-    <linearGradient id="cyan-glow" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#00F0FF"/>
-      <stop offset="100%" stop-color="#3B82F6"/>
+    <!-- Brand Title Gradient -->
+    <linearGradient id="brand-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#C084FC"/>
     </linearGradient>
 
-    <linearGradient id="eq-grad" x1="0%" y1="100%" x2="0%" y2="0%">
+    <!-- Pill Gradient -->
+    <linearGradient id="badge-pill" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#6366F1" stop-opacity="0.15"/>
+    </linearGradient>
+
+    <!-- Spectrum Bar Gradients -->
+    <linearGradient id="bar-grad" x1="0%" y1="100%" x2="0%" y2="0%">
       <stop offset="0%" stop-color="#00F0FF"/>
-      <stop offset="50%" stop-color="#10B981"/>
-      <stop offset="85%" stop-color="#F59E0B"/>
+      <stop offset="45%" stop-color="#10B981"/>
+      <stop offset="80%" stop-color="#F59E0B"/>
       <stop offset="100%" stop-color="#EF4444"/>
     </linearGradient>
 
-    <linearGradient id="pill-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0.15"/>
+    <linearGradient id="cyan-bar" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="60%" stop-color="#00F0FF"/>
+      <stop offset="100%" stop-color="#A5F3FC"/>
     </linearGradient>
 
-    <filter id="subtle-shadow" x="-5%" y="-5%" width="110%" height="110%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.5"/>
+    <!-- Drop Shadows -->
+    <filter id="term-shadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+    
+    <filter id="glow-text" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#00F0FF" flood-opacity="0.4"/>
     </filter>
   </defs>
 
-  <!-- Outer Card Container -->
-  <rect width="1200" height="440" rx="20" fill="url(#bg-grad)"/>
-  <rect width="1198" height="438" x="1" y="1" rx="19" fill="none" stroke="#1E293B" stroke-width="1.5"/>
+  <!-- Outer Frame -->
+  <rect width="1200" height="460" rx="20" fill="url(#bg-canvas)"/>
+  <rect width="1200" height="460" rx="20" fill="url(#glow-cyan)"/>
+  <rect width="1200" height="460" rx="20" fill="url(#glow-purple)"/>
+  <rect width="1198" height="458" x="1" y="1" rx="19" fill="none" stroke="#1E293B" stroke-width="1.5"/>
 
-  <!-- Left Content Column -->
-  <g transform="translate(56, 52)">
-    <!-- Eyebrow Badge -->
-    <rect width="280" height="28" rx="14" fill="url(#pill-grad)" stroke="#00F0FF" stroke-opacity="0.3" stroke-width="1"/>
-    <circle cx="14" cy="14" r="4" fill="#00F0FF"/>
-    <text x="26" y="18" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" letter-spacing="1">MODULAR AUDIO &amp; TUI ENGINE</text>
+  <!-- Left Hero Column -->
+  <g transform="translate(56, 54)">
+    <!-- Version & Engine Badge -->
+    <rect width="275" height="30" rx="15" fill="url(#badge-pill)" stroke="#00F0FF" stroke-opacity="0.3" stroke-width="1"/>
+    <circle cx="15" cy="15" r="4.5" fill="#00F0FF"/>
+    <text x="28" y="19.5" fill="#38BDF8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700" letter-spacing="1">⚡ v1.0.0 • CLI AUDIO ENGINE</text>
 
     <!-- Main Title -->
-    <text x="0" y="82" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="44" font-weight="800" letter-spacing="-1">GrooveGrab <tspan fill="#00F0FF">CLI</tspan></text>
+    <text x="0" y="86" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="46" font-weight="900" letter-spacing="-1.2">GrooveGrab <tspan fill="url(#brand-grad)">CLI</tspan></text>
 
     <!-- Subtitle / Value Proposition -->
-    <text x="0" y="122" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="400" line-height="1.5">
+    <text x="0" y="128" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15.5" font-weight="400" line-height="1.5">
       <tspan x="0" dy="0">High-performance song &amp; playlist downloader with a</tspan>
-      <tspan x="0" dy="24">full-terminal CAVA visualizer &amp; AI-synced lyrics.</tspan>
+      <tspan x="0" dy="24">full-terminal CAVA visualizer &amp; 2-line couplet lyrics.</tspan>
     </text>
 
     <!-- Feature Pill Badges -->
-    <g transform="translate(0, 185)">
-      <!-- Badge 1 -->
-      <rect width="136" height="32" rx="8" fill="#131D31" stroke="#253553" stroke-width="1"/>
-      <text x="14" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="12" font-weight="600">⚡ Multi-Source</text>
+    <g transform="translate(0, 192)">
+      <rect width="124" height="32" rx="8" fill="#111A2C" stroke="#1E2D4A" stroke-width="1"/>
+      <text x="14" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5" font-weight="600">⚡ Multi-Source</text>
 
-      <!-- Badge 2 -->
-      <rect x="146" width="132" height="32" rx="8" fill="#131D31" stroke="#253553" stroke-width="1"/>
-      <text x="160" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="12" font-weight="600">📊 CAVA Visualizer</text>
+      <rect x="134" width="138" height="32" rx="8" fill="#111A2C" stroke="#1E2D4A" stroke-width="1"/>
+      <text x="148" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5" font-weight="600">📊 CAVA Visualizer</text>
 
-      <!-- Badge 3 -->
-      <rect x="288" width="124" height="32" rx="8" fill="#131D31" stroke="#253553" stroke-width="1"/>
-      <text x="302" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="12" font-weight="600">🧠 AI Word Sync</text>
+      <rect x="282" width="136" height="32" rx="8" fill="#111A2C" stroke="#1E2D4A" stroke-width="1"/>
+      <text x="296" y="20" fill="#E2E8F0" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5" font-weight="600">📜 2-Line Couplet</text>
     </g>
 
     <!-- Quick Start Command Box -->
-    <g transform="translate(0, 240)">
-      <rect width="412" height="52" rx="10" fill="#0A0F1A" stroke="#1E293B" stroke-width="1.5"/>
-      <text x="16" y="31" fill="#10B981" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="13" font-weight="700">$</text>
-      <text x="32" y="31" fill="#F8FAFC" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="13" font-weight="600">pip install groovegrab</text>
-      <text x="215" y="31" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="13">&amp;&amp;</text>
-      <text x="245" y="31" fill="#38BDF8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="13" font-weight="600">groovegrab play</text>
+    <g transform="translate(0, 248)">
+      <rect width="418" height="54" rx="10" fill="#080D17" stroke="#1E293B" stroke-width="1.5"/>
+      <text x="16" y="32" fill="#10B981" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="13" font-weight="700">$</text>
+      <text x="32" y="32" fill="#F8FAFC" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="13" font-weight="600">pipx install groovegrab</text>
+      <text x="232" y="32" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="13">&amp;&amp;</text>
+      <text x="262" y="32" fill="#38BDF8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="13" font-weight="600">groovegrab play</text>
     </g>
 
-    <!-- Metadata Strip -->
-    <g transform="translate(0, 316)">
-      <text x="0" y="0" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="12">Python 3.10+  •  FFmpeg Core  •  Meta MMS_FA  •  LRCLIB</text>
+    <!-- Metadata Tech Stack Strip -->
+    <g transform="translate(0, 330)">
+      <text x="0" y="0" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">Python 3.10+  •  FFmpeg Core  •  LRCLIB Sync  •  Mutagen HD</text>
     </g>
   </g>
 
   <!-- Right Terminal Mockup -->
-  <g transform="translate(540, 42)" filter="url(#subtle-shadow)">
-    <!-- Terminal Body -->
-    <rect width="604" height="356" rx="12" fill="url(#term-grad)" stroke="#22314E" stroke-width="1.5"/>
+  <g transform="translate(540, 42)" filter="url(#term-shadow)">
+    <!-- Terminal Window Container -->
+    <rect width="608" height="376" rx="14" fill="url(#term-window)" stroke="#22314E" stroke-width="1.5"/>
 
     <!-- Terminal Window Header -->
-    <path d="M0,12 C0,5.37 5.37,0 12,0 L592,0 C598.63,0 604,5.37 604,12 L604,36 L0,36 Z" fill="#172237"/>
-    <line x1="0" y1="36" x2="604" y2="36" stroke="#22314E" stroke-width="1"/>
+    <path d="M0,14 C0,6.27 6.27,0 14,0 L594,0 C601.73,0 608,6.27 608,14 L608,38 L0,38 Z" fill="#141E33"/>
+    <line x1="0" y1="38" x2="608" y2="38" stroke="#22314E" stroke-width="1"/>
 
-    <!-- Window Controls -->
-    <circle cx="20" cy="18" r="5.5" fill="#EF4444"/>
-    <circle cx="38" cy="18" r="5.5" fill="#F59E0B"/>
-    <circle cx="56" cy="18" r="5.5" fill="#10B981"/>
+    <!-- Window Dots -->
+    <circle cx="20" cy="19" r="6" fill="#EF4444"/>
+    <circle cx="40" cy="19" r="6" fill="#F59E0B"/>
+    <circle cx="60" cy="19" r="6" fill="#10B981"/>
 
-    <text x="302" y="22" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="12" font-weight="600" text-anchor="middle">groovegrab play — 80x24</text>
+    <!-- Window Header Title -->
+    <text x="304" y="23" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="12" font-weight="600" text-anchor="middle">groovegrab play &quot;Tame Impala - Loser&quot;</text>
 
-    <!-- Track Status Line -->
+    <!-- Terminal Content Area -->
     <g transform="translate(24, 62)">
-      <text x="0" y="0" fill="#00F0FF" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="13" font-weight="700">&gt; PLAYING TRACK - Starboy - The Weeknd</text>
-      <rect x="350" y="-12" width="76" height="18" rx="4" fill="#00F0FF" fill-opacity="0.15"/>
-      <text x="388" y="1" fill="#00F0FF" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="10.5" font-weight="700" text-anchor="middle">PLAYING</text>
-      <text x="440" y="0" fill="#00F0FF" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="12">Vol: 80%</text>
-      <text x="504" y="0" fill="#38BDF8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="12" font-weight="600">01:14/03:50</text>
-    </g>
+      <!-- Player Status Header -->
+      <text x="0" y="0" fill="#38BDF8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="12.5" font-weight="700">&gt; [1/3] PLAYING TRACK - Loser - Tame Impala</text>
+      <rect x="360" y="-12" width="64" height="18" rx="4" fill="#10B981" fill-opacity="0.2"/>
+      <text x="392" y="1" fill="#10B981" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="10.5" font-weight="700" text-anchor="middle">PLAYING</text>
+      <text x="436" y="0" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="12">01:24 / 03:44</text>
+      
+      <!-- Progress Bar Track -->
+      <line x1="0" y1="18" x2="560" y2="18" stroke="#1E293B" stroke-width="3" stroke-linecap="round"/>
+      <line x1="0" y1="18" x2="210" y2="18" stroke="#00F0FF" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="210" cy="18" r="5" fill="#00F0FF" filter="url(#glow-text)"/>
 
-    <!-- Progress Timeline Bar -->
-    <g transform="translate(24, 82)">
-      <line x1="0" y1="0" x2="180" y2="0" stroke="#00F0FF" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="180" cy="0" r="4.5" fill="#FFFFFF"/>
-      <line x1="185" y1="0" x2="556" y2="0" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
-    </g>
+      <!-- 2-Line Couplet (CLR) Karaoke Lyrics -->
+      <g transform="translate(0, 56)">
+        <!-- Row 1: First Line (Completed in couplet) -->
+        <text x="18" y="0" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="14" font-weight="500">I had to tell ya, it&apos;s now or never</text>
 
-    <!-- Synced Lyric Typewriter Line -->
-    <g transform="translate(24, 118)">
-      <text x="0" y="0" fill="#00F0FF" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="14" font-weight="700">&gt;</text>
-      <text x="18" y="0" fill="#00F0FF" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="14" font-weight="700">I had to tell ya, it's now or never</text>
-      <rect x="306" y="-13" width="9" height="16" fill="#00F0FF"/>
-    </g>
+        <!-- Row 2: Second Line (Active singing typewriter with block cursor) -->
+        <text x="0" y="28" fill="#00F0FF" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="14.5" font-weight="700">&gt; </text>
+        <text x="18" y="28" fill="#F8FAFC" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="14.5" font-weight="700">So much for closure, I lost </text>
+        <text x="262" y="28" fill="#00F0FF" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="14.5" font-weight="700">composure</text>
+        <rect x="356" y="14" width="9" height="17" fill="#00F0FF" filter="url(#glow-text)"/>
+      </g>
 
-    <!-- CAVA Equalizer Spectrum Bars -->
-    <g transform="translate(24, 150)">
-      <!-- 28 Realistic FFT Frequency Bars -->
-      <rect x="0" y="120" width="14" height="40" rx="2" fill="url(#eq-grad)"/>
-      <rect x="20" y="90" width="14" height="70" rx="2" fill="url(#eq-grad)"/>
-      <rect x="40" y="55" width="14" height="105" rx="2" fill="url(#eq-grad)"/>
-      <rect x="60" y="30" width="14" height="130" rx="2" fill="url(#eq-grad)"/>
-      <rect x="80" y="15" width="14" height="145" rx="2" fill="url(#eq-grad)"/>
-      <rect x="100" y="40" width="14" height="120" rx="2" fill="url(#eq-grad)"/>
-      <rect x="120" y="70" width="14" height="90" rx="2" fill="url(#eq-grad)"/>
-      <rect x="140" y="25" width="14" height="135" rx="2" fill="url(#eq-grad)"/>
-      <rect x="160" y="10" width="14" height="150" rx="2" fill="url(#eq-grad)"/>
-      <rect x="180" y="45" width="14" height="115" rx="2" fill="url(#eq-grad)"/>
-      <rect x="200" y="80" width="14" height="80" rx="2" fill="url(#eq-grad)"/>
-      <rect x="220" y="35" width="14" height="125" rx="2" fill="url(#eq-grad)"/>
-      <rect x="240" y="20" width="14" height="140" rx="2" fill="url(#eq-grad)"/>
-      <rect x="260" y="60" width="14" height="100" rx="2" fill="url(#eq-grad)"/>
-      <rect x="280" y="95" width="14" height="65" rx="2" fill="url(#eq-grad)"/>
-      <rect x="300" y="30" width="14" height="130" rx="2" fill="url(#eq-grad)"/>
-      <rect x="320" y="15" width="14" height="145" rx="2" fill="url(#eq-grad)"/>
-      <rect x="340" y="50" width="14" height="110" rx="2" fill="url(#eq-grad)"/>
-      <rect x="360" y="75" width="14" height="85" rx="2" fill="url(#eq-grad)"/>
-      <rect x="380" y="40" width="14" height="120" rx="2" fill="url(#eq-grad)"/>
-      <rect x="400" y="20" width="14" height="140" rx="2" fill="url(#eq-grad)"/>
-      <rect x="420" y="65" width="14" height="95" rx="2" fill="url(#eq-grad)"/>
-      <rect x="440" y="90" width="14" height="70" rx="2" fill="url(#eq-grad)"/>
-      <rect x="460" y="110" width="14" height="50" rx="2" fill="url(#eq-grad)"/>
-      <rect x="480" y="75" width="14" height="85" rx="2" fill="url(#eq-grad)"/>
-      <rect x="500" y="125" width="14" height="35" rx="2" fill="url(#eq-grad)"/>
-      <rect x="520" y="140" width="14" height="20" rx="2" fill="url(#eq-grad)"/>
-      <rect x="540" y="148" width="14" height="12" rx="2" fill="url(#eq-grad)"/>
-    </g>
+      <!-- Bottom Full-Width CAVA Spectrum Equalizer -->
+      <g transform="translate(0, 130)">
+        <!-- Spectrum Bars (34 bars) -->
+        <!-- Bass -->
+        <rect x="0" y="100" width="12" height="30" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="16" y="75" width="12" height="55" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="32" y="45" width="12" height="85" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="48" y="20" width="12" height="110" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="64" y="10" width="12" height="120" rx="3" fill="url(#bar-grad)"/>
+        <rect x="80" y="25" width="12" height="105" rx="3" fill="url(#bar-grad)"/>
+        <rect x="96" y="5" width="12" height="125" rx="3" fill="url(#bar-grad)"/>
+        <rect x="112" y="30" width="12" height="100" rx="3" fill="url(#bar-grad)"/>
+        
+        <!-- Low Mids -->
+        <rect x="128" y="50" width="12" height="80" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="144" y="22" width="12" height="108" rx="3" fill="url(#bar-grad)"/>
+        <rect x="160" y="8" width="12" height="122" rx="3" fill="url(#bar-grad)"/>
+        <rect x="176" y="35" width="12" height="95" rx="3" fill="url(#bar-grad)"/>
+        <rect x="192" y="15" width="12" height="115" rx="3" fill="url(#bar-grad)"/>
+        <rect x="208" y="40" width="12" height="90" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="224" y="12" width="12" height="118" rx="3" fill="url(#bar-grad)"/>
+        <rect x="240" y="55" width="12" height="75" rx="3" fill="url(#cyan-bar)"/>
 
-    <!-- Hotkey Navigation Footer Inside Terminal -->
-    <g transform="translate(24, 332)">
-      <text x="0" y="0" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11">[SPACE] Pause   [←/→] Seek 5s   [↑/↓] Volume   [V] Mode   [T] Theme   [Q] Quit</text>
+        <!-- High Mids -->
+        <rect x="256" y="25" width="12" height="105" rx="3" fill="url(#bar-grad)"/>
+        <rect x="272" y="8" width="12" height="122" rx="3" fill="url(#bar-grad)"/>
+        <rect x="288" y="42" width="12" height="88" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="304" y="18" width="12" height="112" rx="3" fill="url(#bar-grad)"/>
+        <rect x="320" y="35" width="12" height="95" rx="3" fill="url(#bar-grad)"/>
+        <rect x="336" y="60" width="12" height="70" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="352" y="22" width="12" height="108" rx="3" fill="url(#bar-grad)"/>
+        <rect x="368" y="10" width="12" height="120" rx="3" fill="url(#bar-grad)"/>
+
+        <!-- Presence & Treble -->
+        <rect x="384" y="45" width="12" height="85" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="400" y="28" width="12" height="102" rx="3" fill="url(#bar-grad)"/>
+        <rect x="416" y="65" width="12" height="65" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="432" y="38" width="12" height="92" rx="3" fill="url(#bar-grad)"/>
+        <rect x="448" y="75" width="12" height="55" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="464" y="50" width="12" height="80" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="480" y="85" width="12" height="45" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="496" y="70" width="12" height="60" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="512" y="95" width="12" height="35" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="528" y="105" width="12" height="25" rx="3" fill="url(#cyan-bar)"/>
+        <rect x="544" y="115" width="12" height="15" rx="3" fill="url(#cyan-bar)"/>
+
+        <!-- Peak Indicator Dots -->
+        <circle cx="70" cy="4" r="2.5" fill="#EF4444"/>
+        <circle cx="102" cy="0" r="2.5" fill="#EF4444"/>
+        <circle cx="166" cy="2" r="2.5" fill="#EF4444"/>
+        <circle cx="230" cy="6" r="2.5" fill="#EF4444"/>
+        <circle cx="278" cy="2" r="2.5" fill="#EF4444"/>
+        <circle cx="374" cy="4" r="2.5" fill="#EF4444"/>
+
+        <!-- Spectrum Baseline & Reflection Grid -->
+        <line x1="0" y1="131" x2="560" y2="131" stroke="#22314E" stroke-width="1.5"/>
+        <line x1="0" y1="135" x2="560" y2="135" stroke="#152033" stroke-width="1" stroke-dasharray="2,4"/>
+      </g>
     </g>
   </g>
 </svg>

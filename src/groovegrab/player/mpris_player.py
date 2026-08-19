@@ -1,6 +1,6 @@
 """
 Live MPRIS Synced Lyrics Terminal Player Component
-Clean 2-line lyrics display with full-height bottom CAVA visualizer for Spotify & Linux MPRIS players.
+Clean 2-line couplet lyrics display (Line 1 -> Line 2 -> CLR) with full-height bottom CAVA visualizer for Spotify.
 """
 
 import time
@@ -22,7 +22,7 @@ console = Console()
 
 
 class MprisLiveLyricsPlayer:
-    """Live terminal synchronized lyrics displayer with 2-line lyrics and bottom CAVA visualizer."""
+    """Live terminal synchronized lyrics displayer with 2-line couplet lyrics and bottom CAVA visualizer."""
 
     def __init__(
         self,
@@ -136,9 +136,9 @@ class MprisLiveLyricsPlayer:
         header_str = self._build_header(current_pos, term_width, theme)
         header_lines = [l for l in header_str.split("\n") if l]
 
-        # 2. Exactly 2 Lines of Synced Lyrics
+        # 2. Exactly 2 Lines of Synced Couplet Lyrics
         lyrics_str = self._render_lyrics_2lines(current_pos, theme)
-        lyrics_lines = [l for l in lyrics_str.split("\n") if l] if lyrics_str else []
+        lyrics_lines = lyrics_str.split("\n") if lyrics_str else []
 
         # 3. Full-Height Bottom CAVA Spectrum Visualizer
         reserved_lines = len(header_lines) + len(lyrics_lines)
@@ -188,48 +188,50 @@ class MprisLiveLyricsPlayer:
         return f" [{theme.header}]> {player_label} {title} - {artist}[/{theme.header}]  {status_badge}  [{theme.header}]{time_str}[/{theme.header}] {progress_bar}"
 
     def _render_lyrics_2lines(self, current_pos: float, theme: Theme) -> str:
-        """Renders precisely 2 lines of lyrics: Line 1 (Active Singing Line), Line 2 (Next Upcoming Preview)."""
+        """
+        Renders exactly 2 lines in couplets (Pairs) with clear on transition:
+        - Couplet 1: Line 1 types -> Line 2 types below it while Line 1 stays -> CLR!
+        - Couplet 2: Line 3 types -> Line 4 types below it while Line 3 stays -> CLR!
+        - Zero dull preview text anywhere.
+        """
         if not self.current_lyrics:
-            return f" [{theme.header}]>[/{theme.header}] [dim]Searching synced lyrics for this song...[/dim]\n [dim]  ♪[/dim]"
+            return " \n "
 
-        # Check if before first lyric (Intro)
+        # 1. Before first lyric: Both rows blank (no dull text)
         if current_pos < self.current_lyrics[0].timestamp_sec:
-            first_preview = self.current_lyrics[0].text if self.current_lyrics else ""
-            line1 = f" [{theme.header}]>[/{theme.header}] [{theme.header}]♪ (Instrumental Intro)[/{theme.header}][{theme.header}]█[/{theme.header}]"
-            line2 = f" [dim {theme.header}]  {first_preview}[/dim {theme.header}]" if first_preview else " [dim]  ♪[/dim]"
-            return f"{line1}\n{line2}"
+            return " \n "
 
-        # Find active line
+        # 2. Find active line index
         active_idx = 0
         for idx, line in enumerate(self.current_lyrics):
             if current_pos >= line.timestamp_sec:
                 active_idx = idx
 
-        active_line = self.current_lyrics[active_idx]
+        # Couplet pair base index (0, 2, 4, 6, ...)
+        pair_start = (active_idx // 2) * 2
+        line_top = self.current_lyrics[pair_start]
+        line_bottom = self.current_lyrics[pair_start + 1] if pair_start + 1 < len(self.current_lyrics) else None
 
-        # Line 1: Active singing line with typewriter word reveal
-        if not active_line.text.strip():
-            line1 = f" [{theme.header}]>[/{theme.header}] [{theme.header}]♪[/{theme.header}][{theme.header}]█[/{theme.header}]"
-        else:
-            rendered_active = self.typewriter.render_active_line(
-                active_line,
+        if active_idx == pair_start:
+            # First line of couplet is active and typing; second row is blank
+            rendered_top = self.typewriter.render_active_line(
+                line_top,
                 current_pos,
                 active_color=f"{theme.header}"
             )
-            if rendered_active:
-                line1 = f" [{theme.header}]>[/{theme.header}] {rendered_active}[{theme.header}]█[/{theme.header}]"
-            else:
-                line1 = f" [{theme.header}]>[/{theme.header}] [{theme.header}]{active_line.text}[/{theme.header}][{theme.header}]█[/{theme.header}]"
-
-        # Line 2: Next upcoming preview line
-        if active_idx + 1 < len(self.current_lyrics):
-            next_line = self.current_lyrics[active_idx + 1]
-            gap = next_line.timestamp_sec - active_line.timestamp_sec
-            if not next_line.text.strip() or (gap >= 4.5 and current_pos > active_line.timestamp_sec + 3.0):
-                line2 = f" [dim {theme.header}]  ♪[/dim {theme.header}]"
-            else:
-                line2 = f" [dim {theme.header}]  {next_line.text}[/dim {theme.header}]"
+            line1 = f" [{theme.header}]>[/{theme.header}] {rendered_top}[{theme.header}]█[/{theme.header}]"
+            line2 = " "
         else:
-            line2 = f" [dim {theme.header}]  (Outro)[/dim {theme.header}]"
+            # First line of couplet completed; second line is active and typing below it
+            line1 = f"   [{theme.header}]{line_top.text}[/{theme.header}]"
+            if line_bottom:
+                rendered_bottom = self.typewriter.render_active_line(
+                    line_bottom,
+                    current_pos,
+                    active_color=f"{theme.header}"
+                )
+                line2 = f" [{theme.header}]>[/{theme.header}] {rendered_bottom}[{theme.header}]█[/{theme.header}]"
+            else:
+                line2 = " "
 
         return f"{line1}\n{line2}"

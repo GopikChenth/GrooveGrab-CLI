@@ -1,18 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="100%" height="100%" role="img" aria-labelledby="arch-title arch-desc">
   <title id="arch-title">GrooveGrab Architecture &amp; Processing Pipeline</title>
-  <desc id="arch-desc">Pipeline diagram showing URL input, multi-provider extraction, audio transcoding, AI word-level forced alignment, and CAVA spectrum playback.</desc>
+  <desc id="arch-desc">Pipeline diagram showing URL input, multi-provider extraction, audio transcoding, 2-line couplet synced lyrics engine, and CAVA spectrum playback.</desc>
 
   <defs>
     <!-- Background & Container Gradients -->
     <linearGradient id="arch-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#080C14"/>
-      <stop offset="50%" stop-color="#0D1322"/>
-      <stop offset="100%" stop-color="#06090F"/>
+      <stop offset="0%" stop-color="#070A12"/>
+      <stop offset="50%" stop-color="#0B1220"/>
+      <stop offset="100%" stop-color="#05070D"/>
     </linearGradient>
 
     <linearGradient id="card-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#141D2E"/>
-      <stop offset="100%" stop-color="#0E1524"/>
+      <stop offset="0%" stop-color="#121B2E"/>
+      <stop offset="100%" stop-color="#0A0F1B"/>
     </linearGradient>
 
     <!-- Flow Arrow Gradient -->
@@ -23,8 +23,8 @@
   </defs>
 
   <!-- Canvas Background -->
-  <rect width="1200" height="360" rx="16" fill="url(#arch-bg)"/>
-  <rect width="1198" height="358" x="1" y="1" rx="15" fill="none" stroke="#1E293B" stroke-width="1.5"/>
+  <rect width="1200" height="360" rx="18" fill="url(#arch-bg)"/>
+  <rect width="1198" height="358" x="1" y="1" rx="17" fill="none" stroke="#1E293B" stroke-width="1.5"/>
 
   <!-- Section Header -->
   <g transform="translate(48, 36)">
@@ -37,20 +37,20 @@
     
     <!-- Stage 1: Input & Provider Resolution -->
     <g transform="translate(0, 0)">
-      <rect width="248" height="210" rx="12" fill="url(#card-grad)" stroke="#22314E" stroke-width="1.5"/>
+      <rect width="248" height="210" rx="12" fill="url(#card-grad)" stroke="#1E2D4A" stroke-width="1.5"/>
       <rect x="16" y="16" width="32" height="32" rx="8" fill="#00F0FF" fill-opacity="0.15"/>
       <text x="32" y="38" fill="#00F0FF" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="16" font-weight="700" text-anchor="middle">01</text>
       
       <text x="60" y="32" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">Source Ingestion</text>
-      <text x="60" y="48" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11">Input &amp; Resolver</text>
+      <text x="60" y="48" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11">Input &amp; Smart Match</text>
       
       <line x1="16" y1="62" x2="232" y2="62" stroke="#1E293B" stroke-width="1"/>
       
-      <text x="16" y="88" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• YouTube Music</text>
-      <text x="16" y="112" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• Spotify Metadata</text>
+      <text x="16" y="88" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• YouTube Topic Channels</text>
+      <text x="16" y="112" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• Spotify Metadata Match</text>
       <text x="16" y="136" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• JioSaavn &amp; SoundCloud</text>
       <text x="16" y="160" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• Direct Audio/Video URL</text>
-      <text x="16" y="184" fill="#38BDF8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="600">→ Concurrent Download</text>
+      <text x="16" y="184" fill="#38BDF8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="600">→ Concurrent Engine</text>
     </g>
 
     <!-- Connector 1 -->
@@ -61,11 +61,11 @@
 
     <!-- Stage 2: Audio Conversion & Tagging -->
     <g transform="translate(298, 0)">
-      <rect width="248" height="210" rx="12" fill="url(#card-grad)" stroke="#22314E" stroke-width="1.5"/>
+      <rect width="248" height="210" rx="12" fill="url(#card-grad)" stroke="#1E2D4A" stroke-width="1.5"/>
       <rect x="16" y="16" width="32" height="32" rx="8" fill="#10B981" fill-opacity="0.15"/>
       <text x="32" y="38" fill="#10B981" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="16" font-weight="700" text-anchor="middle">02</text>
       
-      <text x="60" y="32" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">Audio &amp; Metadata</text>
+      <text x="60" y="32" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">Audio &amp; Tagging</text>
       <text x="60" y="48" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11">FFmpeg &amp; Mutagen</text>
       
       <line x1="16" y1="62" x2="232" y2="62" stroke="#1E293B" stroke-width="1"/>
@@ -83,22 +83,22 @@
       <polygon points="28,5 38,10 28,15" fill="#10B981"/>
     </g>
 
-    <!-- Stage 3: AI Word-Level Sync Engine -->
+    <!-- Stage 3: Synced Lyrics Engine -->
     <g transform="translate(596, 0)">
-      <rect width="248" height="210" rx="12" fill="url(#card-grad)" stroke="#22314E" stroke-width="1.5"/>
+      <rect width="248" height="210" rx="12" fill="url(#card-grad)" stroke="#1E2D4A" stroke-width="1.5"/>
       <rect x="16" y="16" width="32" height="32" rx="8" fill="#8B5CF6" fill-opacity="0.15"/>
       <text x="32" y="38" fill="#8B5CF6" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="16" font-weight="700" text-anchor="middle">03</text>
       
-      <text x="60" y="32" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">AI Word Sync</text>
-      <text x="60" y="48" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11">Meta MMS_FA &amp; LRCLIB</text>
+      <text x="60" y="32" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">Synced Lyrics</text>
+      <text x="60" y="48" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11">LRCLIB &amp; Teleprompter</text>
       
       <line x1="16" y1="62" x2="232" y2="62" stroke="#1E293B" stroke-width="1"/>
       
-      <text x="16" y="88" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• Formant Bandpass Filter</text>
-      <text x="16" y="112" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• Anchor-Locked Bounding</text>
-      <text x="16" y="136" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• CTC Trellis Forced Align</text>
-      <text x="16" y="160" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• 0.001s Instant Cache</text>
-      <text x="16" y="184" fill="#A78BFA" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="600">→ Millisecond Word Map</text>
+      <text x="16" y="88" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• Exact Timestamp Query</text>
+      <text x="16" y="112" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• Offline .lrc File Cache</text>
+      <text x="16" y="136" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• 2-Line Couplet (CLR)</text>
+      <text x="16" y="160" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• Singing Tempo Typewriter</text>
+      <text x="16" y="184" fill="#8B5CF6" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="600">→ Teleprompter LRC</text>
     </g>
 
     <!-- Connector 3 -->
@@ -107,22 +107,22 @@
       <polygon points="28,5 38,10 28,15" fill="#8B5CF6"/>
     </g>
 
-    <!-- Stage 4: TUI Player & CAVA Visualizer -->
+    <!-- Stage 4: Playback & CAVA Spectrum -->
     <g transform="translate(894, 0)">
-      <rect width="210" height="210" rx="12" fill="url(#card-grad)" stroke="#22314E" stroke-width="1.5"/>
-      <rect x="16" y="16" width="32" height="32" rx="8" fill="#EC4899" fill-opacity="0.15"/>
-      <text x="32" y="38" fill="#EC4899" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="16" font-weight="700" text-anchor="middle">04</text>
+      <rect width="258" height="210" rx="12" fill="url(#card-grad)" stroke="#1E2D4A" stroke-width="1.5"/>
+      <rect x="16" y="16" width="32" height="32" rx="8" fill="#38BDF8" fill-opacity="0.15"/>
+      <text x="32" y="38" fill="#38BDF8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="16" font-weight="700" text-anchor="middle">04</text>
       
-      <text x="60" y="32" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">TUI Player</text>
-      <text x="60" y="48" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11">CAVA Spectrum</text>
+      <text x="60" y="32" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">CAVA &amp; MPRIS</text>
+      <text x="60" y="48" fill="#64748B" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11">Real-Time TUI Engine</text>
       
-      <line x1="16" y1="62" x2="194" y2="62" stroke="#1E293B" stroke-width="1"/>
+      <line x1="16" y1="62" x2="242" y2="62" stroke="#1E293B" stroke-width="1"/>
       
-      <text x="16" y="88" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• Real Mathematical FFT</text>
-      <text x="16" y="112" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• 5 Modes (Bars, Braille..)</text>
-      <text x="16" y="136" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• 9 Color Themes</text>
-      <text x="16" y="160" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• Monotonic Audio Clock</text>
-      <text x="16" y="184" fill="#F472B6" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="600">→ Live Terminal Output</text>
+      <text x="16" y="88" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• 5 Modes (Bars, Braille...)</text>
+      <text x="16" y="112" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• 9 Curated Visual Themes</text>
+      <text x="16" y="136" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• D-Bus Spotify Listener</text>
+      <text x="16" y="160" fill="#94A3B8" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11.5">• Seamless Playlist Queue</text>
+      <text x="16" y="184" fill="#00F0FF" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="600">→ Live Terminal TUI</text>
     </g>
 
   </g>

@@ -1,14 +1,13 @@
 """
-AI Word-Level & Natural Singing Cadence Lyric Typewriter Animator
-Supports exact millisecond word-by-word acoustic alignment (Meta MMS_FA) with natural cadence fallback.
+Natural Vocal Cadence Lyric Typewriter Animator
+Paces character and word reveal to match the singing tempo and time duration of each line.
 """
 
-from typing import List
-from groovegrab.player.lrc_parser import LrcLine, WordTiming
+from groovegrab.player.lrc_parser import LrcLine
 
 
 class TypewriterAnimator:
-    """Calculates character/word reveal matching exact acoustic word timestamps."""
+    """Calculates character reveal matching singing tempo and line duration."""
 
     def render_active_line(
         self,
@@ -25,43 +24,21 @@ class TypewriterAnimator:
         if elapsed <= 0:
             return ""
 
-        # 1. AI Word-Level Sync (100% Exact Millisecond Acoustic Word Reveal)
-        if line.words and len(line.words) > 0:
-            rendered_words: List[str] = []
-            for w in line.words:
-                w_duration = min(0.6, max(0.15, w.end_sec - w.start_sec))
-                w_finish = w.start_sec + w_duration
+        # Available time gap until next line
+        line_gap = (line.end_sec - start) if line.end_sec else 4.0
+        words = text.split()
+        num_words = max(1, len(words))
 
-                if current_time_sec >= w_finish:
-                    # Word has been fully sung
-                    rendered_words.append(w.word)
-                elif current_time_sec >= w.start_sec:
-                    # Word is actively being vocalized right now (sub-word character reveal)
-                    w_elapsed = current_time_sec - w.start_sec
-                    w_progress = min(1.0, max(0.0, w_elapsed / w_duration))
-                    chars_shown = max(1, int(w_progress * len(w.word)))
-                    rendered_words.append(w.word[:chars_shown])
-                    break
-                else:
-                    # Word has not been sung yet
-                    break
+        # Singing duration is proportional to words and line interval (~80% of gap)
+        singing_duration = max(0.8, min(line_gap * 0.82, max(1.2, num_words * 0.40)))
 
-            if rendered_words:
-                typed_part = " ".join(rendered_words)
-                return f"[{active_color}]{typed_part}[/{active_color}]"
+        if elapsed >= singing_duration:
+            # Line completed: show 100% of line
+            return f"[{active_color}]{text}[/{active_color}]"
 
-        # 2. Natural Singing Cadence Fallback (~14 chars/sec)
-        available_gap = max(0.5, (line.end_sec - start) if line.end_sec else 4.0)
-        natural_vocal_time = len(text) / 14.0
-
-        if natural_vocal_time >= available_gap:
-            typing_duration = max(0.4, available_gap * 0.88)
-        else:
-            typing_duration = max(1.0, min(3.5, natural_vocal_time))
-
-        progress = min(1.0, max(0.0, elapsed / max(0.3, typing_duration)))
-        char_count = int(progress * len(text))
-        char_count = max(1, min(len(text), char_count))
+        # Paced character reveal across singing duration
+        progress = min(1.0, max(0.0, elapsed / singing_duration))
+        char_count = max(1, min(len(text), int(progress * len(text))))
 
         typed_part = text[:char_count]
         return f"[{active_color}]{typed_part}[/{active_color}]"
