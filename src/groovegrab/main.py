@@ -11,6 +11,7 @@ from groovegrab.cli.search import search_command
 from groovegrab.cli.queue import queue_command
 from groovegrab.cli.config import config_command, setup_command
 from groovegrab.cli.player import play_command
+from groovegrab.cli.lyrics import lyrics_command
 
 console = Console()
 
@@ -23,6 +24,9 @@ app = typer.Typer(
 
 app.command(name="dl", help="Download songs, playlists, or albums")(download_command)
 app.command(name="play", help="Play songs with real-time synced Karaoke lyrics & audio visualizer")(play_command)
+app.command(name="lyrics", help="Live real-time synced lyrics tracker for Spotify and MPRIS players")(lyrics_command)
+app.command(name="sync", help="Alias for live lyrics tracker")(lyrics_command)
+app.command(name="spotify", help="Alias for live Spotify lyrics tracker")(lyrics_command)
 app.command(name="search", help="Search songs interactively")(search_command)
 app.command(name="queue", help="View download queue history")(queue_command)
 app.command(name="config", help="Manage configuration settings")(config_command)

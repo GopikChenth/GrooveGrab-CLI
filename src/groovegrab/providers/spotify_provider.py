@@ -1,5 +1,6 @@
 """
 Spotify Metadata & Playlist Resolver Plugin
+Robust extraction of track, album, and playlist metadata via Spotify embed entity.
 """
 
 import re
@@ -42,20 +43,23 @@ class SpotifyProvider(BaseProvider):
         embed_url = f"https://open.spotify.com/embed/{media_kind}/{spotify_id}"
         
         headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             "Accept-Language": "en-US,en;q=0.9",
         }
 
         try:
             resp = httpx.get(embed_url, headers=headers, timeout=12.0, follow_redirects=True)
             if resp.status_code == 200:
-                match_data = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', resp.text)
-                if match_data:
-                    groovegrab = json.loads(match_data.group(1))
-                    entity = groovegrab.get("props", {}).get("pageProps", {}).get("state", {}).get("data", {}).get("entity", {})
-                    
-                    if entity:
-                        return self._parse_entity(entity, media_kind, query_or_url)
+                script_tags = re.findall(r"<script[^>]*>(.*?)</script>", resp.text, re.DOTALL)
+                for content in script_tags:
+                    if "props" in content and "entity" in content:
+                        try:
+                            parsed_json = json.loads(content)
+                            entity = parsed_json.get("props", {}).get("pageProps", {}).get("state", {}).get("data", {}).get("entity", {})
+                            if entity:
+                                return self._parse_entity(entity, media_kind, query_or_url)
+                        except Exception:
+                            continue
         except Exception as e:
             raise ProviderError(f"Failed to fetch Spotify metadata: {e}")
 
@@ -64,25 +68,60 @@ class SpotifyProvider(BaseProvider):
 
     def _parse_entity(self, entity: dict, media_kind: str, original_url: str) -> Union[TrackInfo, PlaylistInfo]:
         title = entity.get("name") or entity.get("title") or "Spotify Content"
-        subtitle = entity.get("subtitle") or entity.get("author") or "Spotify"
+        
+        # Extract artists
+        artists_list = entity.get("artists", [])
+        if artists_list:
+            artists_str = ", ".join(a.get("name") for a in artists_list if a.get("name"))
+        else:
+            artists_str = entity.get("subtitle") or entity.get("author") or "Spotify"
+
         cover_url = self._extract_cover(entity)
 
+        # Single track
+        if media_kind == "track":
+            dur_ms = entity.get("duration", 0)
+            dur_sec = int(dur_ms // 1000) if dur_ms else None
+            release_date = entity.get("releaseDate", {}).get("isoString", "")
+            release_year = int(release_date[:4]) if len(release_date) >= 4 and release_date[:4].isdigit() else None
+
+            return TrackInfo(
+                title=title,
+                artist=artists_str,
+                album=entity.get("album", {}).get("name") if isinstance(entity.get("album"), dict) else None,
+                release_year=release_year,
+                duration=dur_sec,
+                cover_url=cover_url,
+                stream_url=None,  # Forces yt-dlp to search for exact studio audio
+                webpage_url=original_url,
+                provider_name=self.name,
+                media_type=MediaType.AUDIO,
+                raw_metadata=entity
+            )
+
+        # Album / Playlist
         track_list_raw = entity.get("trackList", [])
         tracks: List[TrackInfo] = []
 
         for idx, t in enumerate(track_list_raw, 1):
             t_title = t.get("title", "Unknown Track")
-            t_artist = t.get("subtitle") or subtitle
+            t_artists = t.get("artists", [])
+            if t_artists:
+                t_artist_str = ", ".join(a.get("name") for a in t_artists if a.get("name"))
+            else:
+                t_artist_str = t.get("subtitle") or artists_str
+            
             dur_ms = t.get("duration", 0)
-            dur_sec = dur_ms // 1000 if dur_ms else None
+            dur_sec = int(dur_ms // 1000) if dur_ms else None
 
             tracks.append(TrackInfo(
                 title=t_title,
-                artist=t_artist,
+                artist=t_artist_str,
                 album=title if media_kind == "album" else None,
                 track_number=idx,
                 duration=dur_sec,
                 cover_url=cover_url,
+                stream_url=None,
                 webpage_url=original_url,
                 provider_name=self.name,
                 media_type=MediaType.AUDIO
@@ -91,7 +130,7 @@ class SpotifyProvider(BaseProvider):
         if media_kind in ["playlist", "album"] or len(tracks) > 1:
             return PlaylistInfo(
                 title=title,
-                author=subtitle,
+                author=artists_str,
                 tracks=tracks,
                 cover_url=cover_url,
                 provider_name=self.name
@@ -106,11 +145,11 @@ class SpotifyProvider(BaseProvider):
         visual = entity.get("visualIdentity", {})
         images = visual.get("image", []) or entity.get("images", [])
         if images:
-            return images[0].get("url", "")
+            return images[-1].get("url", "") or images[0].get("url", "")
         cover = entity.get("coverArt", {})
         sources = cover.get("sources", [])
         if sources:
-            return sources[0].get("url", "")
+            return sources[-1].get("url", "") or sources[0].get("url", "")
         return ""
 
     def _oembed_fallback(self, query_or_url: str) -> TrackInfo:
@@ -125,6 +164,7 @@ class SpotifyProvider(BaseProvider):
                     title=title,
                     artist=author,
                     cover_url=thumbnail,
+                    stream_url=None,
                     webpage_url=query_or_url,
                     provider_name=self.name,
                     media_type=MediaType.AUDIO

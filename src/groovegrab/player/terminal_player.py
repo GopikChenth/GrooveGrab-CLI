@@ -1,10 +1,11 @@
 """
 Full-Screen CAVA-Style Live TUI Terminal Player UI Component
 Clean, borderless, minimal aesthetic matching native CAVA visualizer
-AI Word-Level Acoustic Timing (Meta MMS_FA) & High-Precision Monotonic Audio Playback
+Instant-start playback, 2-line clean synced lyrics display & bottom full-height CAVA spectrum visualizer.
 """
 
 import time
+import threading
 from pathlib import Path
 from typing import List, Optional
 
@@ -26,7 +27,7 @@ console = Console()
 
 
 class TerminalPlayer:
-    """Clean Borderless CAVA-Style TUI Audio Player with Real-Time Spectrum Visualizer & Synced Lyrics."""
+    """Clean Borderless CAVA-Style TUI Audio Player with Real-Time Spectrum Visualizer & 2-Line Synced Lyrics."""
 
     def __init__(
         self,
@@ -53,25 +54,39 @@ class TerminalPlayer:
         # Load audio for FFT frequencies
         self.visualizer.load_audio_file(self.audio_path)
         
-        # Resolve and load synced lyrics
+        # Resolve and load synced lyrics (offline first, with auto-save)
         self.lyrics: List[LrcLine] = self._resolve_and_load_lyrics()
 
-        # Run AI Word-Level Global Forced Alignment for 100% exact acoustic word timestamps
+        # Non-blocking AI word-level forced alignment
         if self.lyrics:
             try:
                 from groovegrab.engines.audio_transcriber import AudioTranscriber
                 transcriber = AudioTranscriber()
-                self.lyrics = transcriber.align_lines(self.audio_path, self.lyrics)
+                full_text = "\n".join(l.text for l in self.lyrics)
+                cache_path = transcriber._get_cache_path(self.audio_path, full_text)
+                
+                if cache_path.exists():
+                    self.lyrics = transcriber.align_lines(self.audio_path, self.lyrics)
+                else:
+                    def _async_align():
+                        try:
+                            self.lyrics = transcriber.align_lines(self.audio_path, self.lyrics)
+                        except Exception:
+                            pass
+                    t = threading.Thread(target=_async_align, daemon=True)
+                    t.start()
             except Exception:
                 pass
 
     def _resolve_and_load_lyrics(self) -> List[LrcLine]:
-        """Resolves local .lrc files or auto-fetches synced lyrics via LRCLIB."""
+        """Resolves local .lrc files offline first or auto-fetches synced lyrics and saves them offline."""
+        # 1. Check exact .lrc path next to audio file
         if self.lrc_path and self.lrc_path.exists():
             parsed = self.lrc_parser.parse_file(self.lrc_path)
             if parsed:
                 return parsed
 
+        # 2. Check parent directory for matching .lrc files
         if self.audio_path.parent.exists():
             stem_lower = self.audio_path.stem.lower()
             for lrc_candidate in self.audio_path.parent.glob("*.lrc"):
@@ -81,13 +96,16 @@ class TerminalPlayer:
                         self.lrc_path = lrc_candidate
                         return parsed
 
+        # 3. Query online and save offline for future use
         fetcher = LyricFetcher()
         synced_text, _ = fetcher.fetch_lyrics(self.track_info)
         if synced_text:
             parsed = self.lrc_parser.parse_text(synced_text)
             if parsed:
                 try:
-                    fetcher.save_lrc_file(self.audio_path, synced_text)
+                    # Save offline next to the audio file
+                    offline_lrc = self.audio_path.with_suffix(".lrc")
+                    fetcher.save_lrc_file(offline_lrc, synced_text)
                 except Exception:
                     pass
                 return parsed
@@ -122,6 +140,10 @@ class TerminalPlayer:
                                 self.driver.change_volume(-0.1)
                             elif key.lower() == 'm':
                                 self.driver.toggle_mute()
+                            elif key.lower() == 't':
+                                self.theme_name = next_theme_name(self.theme_name)
+                            elif key.lower() == 'v':
+                                self.mode = next_visualizer_mode(self.mode)
 
                         time.sleep(0.025)
 
@@ -133,21 +155,21 @@ class TerminalPlayer:
         term_width = max(30, console.size.width or 80)
         term_height = max(10, console.size.height or 24)
 
-        # 1. Top Left Status Header
+        # 1. Top Status Header
         header_str = self._build_header(current_time, term_width, theme)
         header_lines = [l for l in header_str.split("\n") if l]
 
-        # 2. Top Left Synchronized Typewriter Lyrics Line
+        # 2. Exactly 2 Lines of Synchronized Lyrics (Active + Upcoming Preview)
         has_lyrics = self.show_lyrics and bool(self.lyrics)
-        lyrics_str = self._render_lyrics(current_time, theme) if has_lyrics else ""
+        lyrics_str = self._render_lyrics_2lines(current_time, theme) if has_lyrics else ""
         lyrics_lines = [l for l in lyrics_str.split("\n") if l] if lyrics_str else []
 
-        # 3. Maximize CAVA Spectrum Visualizer Height
+        # 3. Maximize CAVA Spectrum Visualizer Height for the Bottom Area
         reserved_lines = len(header_lines) + len(lyrics_lines)
         viz_height = max(3, term_height - reserved_lines - 1)
         viz_width = term_width
 
-        # 4. Render Borderless CAVA Spectrum Visualizer
+        # 4. Render Bottom CAVA Spectrum Visualizer
         viz_output = self.visualizer.render(
             current_time_sec=current_time,
             width=viz_width,
@@ -158,7 +180,7 @@ class TerminalPlayer:
             mirror=self.mirror_mode
         )
 
-        # Assemble layout at top-left
+        # Assemble layout
         body_parts = [header_str]
         if lyrics_str:
             body_parts.append(lyrics_str)
@@ -210,23 +232,45 @@ class TerminalPlayer:
 
         return header_str
 
-    def _render_lyrics(self, current_time: float, theme: Theme) -> str:
+    def _render_lyrics_2lines(self, current_time: float, theme: Theme) -> str:
+        """Renders precisely 2 lines of lyrics: Line 1 (Active Singing Line), Line 2 (Next Upcoming Preview)."""
         if not self.lyrics:
             return ""
 
+        # Check if before first lyric (Intro)
+        if current_time < self.lyrics[0].timestamp_sec:
+            first_preview = self.lyrics[0].text if self.lyrics else ""
+            line1 = f" [{theme.header}]>[/{theme.header}] [{theme.header}]♪ (Instrumental Intro)[/{theme.header}][{theme.header}]█[/{theme.header}]"
+            line2 = f" [dim {theme.header}]  {first_preview}[/dim {theme.header}]" if first_preview else " [dim]  ♪[/dim]"
+            return f"{line1}\n{line2}"
+
+        # Find active line
         timing_chain = getattr(self.visualizer.engine, "timing_chain", TimingChain())
         idx, active_line = timing_chain.find_active_line(self.lyrics, current_time)
 
-        if active_line is None:
-            return f" [{theme.header}]>[/{theme.header}] [{theme.header}](Instrumental Intro)[/{theme.header}][{theme.header}]█[/{theme.header}]"
+        if active_line is None or idx is None:
+            return ""
 
+        # Line 1: Active singing line with typewriter word reveal
         rendered_active = self.typewriter.render_active_line(
             active_line,
             current_time,
             active_color=f"{theme.header}"
         )
-        
         if not rendered_active:
-            return ""
+            line1 = f" [{theme.header}]>[/{theme.header}] [{theme.header}]{active_line.text}[/{theme.header}][{theme.header}]█[/{theme.header}]"
+        else:
+            line1 = f" [{theme.header}]>[/{theme.header}] {rendered_active}[{theme.header}]█[/{theme.header}]"
 
-        return f" [{theme.header}]>[/{theme.header}] {rendered_active}[{theme.header}]█[/{theme.header}]"
+        # Line 2: Next upcoming preview line
+        if idx + 1 < len(self.lyrics):
+            next_line = self.lyrics[idx + 1]
+            gap = next_line.timestamp_sec - active_line.timestamp_sec
+            if not next_line.text.strip() or (gap >= 4.5 and current_time > active_line.timestamp_sec + 3.0):
+                line2 = f" [dim {theme.header}]  ♪[/dim {theme.header}]"
+            else:
+                line2 = f" [dim {theme.header}]  {next_line.text}[/dim {theme.header}]"
+        else:
+            line2 = f" [dim {theme.header}]  (Outro)[/dim {theme.header}]"
+
+        return f"{line1}\n{line2}"

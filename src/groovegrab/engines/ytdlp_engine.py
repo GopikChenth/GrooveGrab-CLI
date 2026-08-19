@@ -1,6 +1,7 @@
 """
 yt-dlp Audio Downloader Engine
-Uses official studio audio search queries to guarantee 100% lyrics timestamp synchronization
+Uses official studio audio search queries, Android/Web player client config to bypass 403 Forbidden errors,
+and guarantees 100% lyrics timestamp synchronization.
 """
 
 import os
@@ -76,8 +77,17 @@ class YtDlpEngine:
             'quiet': True,
             'no_warnings': True,
             'ignoreerrors': False,
-            'retries': 5,
-            'fragment_retries': 5,
+            'retries': 10,
+            'fragment_retries': 10,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web'],
+                }
+            },
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
+            },
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': options.audio_format.value,

@@ -1,5 +1,6 @@
 """
 Player Subcommand Handler (`groovegrab play`)
+Seamlessly plays local/downloaded tracks or live-tracks Spotify / MPRIS playback with real-time synced lyrics.
 """
 
 from pathlib import Path
@@ -12,7 +13,9 @@ from groovegrab.core.models import TrackInfo, DownloadOptions
 from groovegrab.providers.registry import ProviderRegistry
 from groovegrab.queue.task_queue import TaskQueueManager
 from groovegrab.engines.ytdlp_engine import YtDlpEngine
+from groovegrab.engines.mpris_engine import MprisEngine
 from groovegrab.player.terminal_player import TerminalPlayer
+from groovegrab.player.mpris_player import MprisLiveLyricsPlayer
 from groovegrab.player.visualizer import VisualizerMode
 from groovegrab.ui.banner import print_info, print_error
 
@@ -22,23 +25,43 @@ app = typer.Typer(help="Play songs with real-time CAVA audio visualizer and sync
 
 @app.callback(invoke_without_command=True)
 def play_command(
-    target: str = typer.Argument(..., help="Song title, URL, or local file path to play"),
+    target: Optional[str] = typer.Argument(None, help="Song title, URL, local file, or omit to track live Spotify/MPRIS playback"),
     theme: str = typer.Option("cava", "--theme", "-t", help="Player theme (cava, cyberpunk, matrix, fire, sunset, ocean, aurora, synthwave, monochrome)"),
     mode: str = typer.Option("bars", "--mode", "-m", help="Visualizer mode (bars, braille, wave, mirror, particles)"),
+    spotify: bool = typer.Option(False, "--spotify", "-s", help="Attach to live Spotify / MPRIS playback"),
 ):
     """Play songs with real-time CAVA TUI audio spectrum visualizer & synced Karaoke lyrics."""
     config_mgr = ConfigManager()
     cfg = config_mgr.get()
 
-    local_path = Path(target)
-    
     # Parse initial visualizer mode
     try:
         viz_mode = VisualizerMode(mode.lower())
     except ValueError:
         viz_mode = VisualizerMode.BARS
 
-    # 1. Direct local audio file
+    # 1. If target is omitted or --spotify flag passed -> Track live Spotify / MPRIS
+    if not target or spotify:
+        mpris_engine = MprisEngine()
+        players = mpris_engine.list_active_players()
+        if players or spotify:
+            mpris_player = MprisLiveLyricsPlayer(
+                player_name="spotify" if spotify else (players[0] if players else None),
+                theme_name=theme
+            )
+            mpris_player.start()
+            return
+        else:
+            console.print("[bold cyan]GrooveGrab Audio Player[/bold cyan]")
+            console.print("Usage: [bold green]groovegrab play \"Song Name\"[/bold green] or start Spotify to live-sync lyrics.\n")
+            target_input = typer.prompt("Enter song name or URL to play")
+            if not target_input.strip():
+                return
+            target = target_input.strip()
+
+    local_path = Path(target)
+
+    # 2. Direct local audio file
     if local_path.exists() and local_path.is_file():
         track_info = TrackInfo(
             title=local_path.stem.split(" - ")[-1] if " - " in local_path.stem else local_path.stem,
@@ -55,7 +78,7 @@ def play_command(
         player.start()
         return
 
-    # 2. Check local download directory for matching song
+    # 3. Check local download directory or resolve online
     target_dir = Path(cfg.download_dir)
     downloader = YtDlpEngine()
     

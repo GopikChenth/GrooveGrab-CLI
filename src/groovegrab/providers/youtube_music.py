@@ -1,5 +1,6 @@
 """
 YouTube & YouTube Music Provider Plugin
+Smart studio audio matching to avoid music video dialogue skits & ensure exact Spotify / LRCLIB sync.
 """
 
 import re
@@ -9,7 +10,6 @@ import yt_dlp
 from groovegrab.providers.base import BaseProvider
 from groovegrab.core.models import TrackInfo, PlaylistInfo, MediaType
 from groovegrab.core.exceptions import ProviderError
-
 
 YOUTUBE_URL_REGEX = re.compile(
     r'^(https?://)?(www\.|music\.)?(youtube\.com|youtu\.be)/(watch\?v=|playlist\?list=|v/|embed/|shorts/)?'
@@ -27,7 +27,8 @@ class YouTubeProvider(BaseProvider):
         return False
 
     def resolve(self, query_or_url: str) -> Union[TrackInfo, PlaylistInfo]:
-        target = query_or_url if query_or_url.startswith("http") else f"ytsearch1:{query_or_url}"
+        is_url = query_or_url.startswith("http")
+        target = query_or_url if is_url else f"ytsearch5:{query_or_url} Audio"
 
         ydl_opts = {
             'extract_flat': 'in_playlist',
@@ -50,8 +51,10 @@ class YouTubeProvider(BaseProvider):
             entries = [e for e in info['entries'] if e]
             if not entries:
                 raise ProviderError("No tracks found for search query.")
-            if not query_or_url.startswith("http"):
-                return self._parse_track_info(entries[0])
+            
+            if not is_url:
+                best_entry = self._select_best_studio_track(entries, query_or_url)
+                return self._parse_track_info(best_entry)
 
             tracks: List[TrackInfo] = []
             for entry in entries:
@@ -68,6 +71,35 @@ class YouTubeProvider(BaseProvider):
 
         # Single Track
         return self._parse_track_info(info)
+
+    def _select_best_studio_track(self, entries: List[dict], query: str) -> dict:
+        """
+        Ranks search candidates to prioritize clean studio audio / Topic tracks over music videos with dialogue skits.
+        """
+        scored = []
+        for e in entries:
+            title = (e.get('title') or '').lower()
+            channel = (e.get('uploader') or e.get('channel') or '').lower()
+            score = 100
+
+            # Priority 1: Official Topic channels (official studio album release)
+            if '- topic' in channel:
+                score += 80
+
+            # Priority 2: Official Audio / Audio releases
+            if 'official audio' in title or 'audio' in title:
+                score += 30
+            if 'lyrics' in title:
+                score += 20
+
+            # Penalty: Music videos often have non-musical skits, dialogue, or extended openings
+            if 'official video' in title or 'music video' in title or 'short film' in title or 'film' in title:
+                score -= 50
+
+            scored.append((score, e))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return scored[0][1]
 
     def search(self, query: str, limit: int = 10) -> List[TrackInfo]:
         search_query = f"ytsearch{limit}:{query}"
@@ -97,6 +129,10 @@ class YouTubeProvider(BaseProvider):
         title = info.get('title', 'Unknown Title')
         artist = info.get('artist') or info.get('uploader') or info.get('channel') or 'Unknown Artist'
         
+        # Strip Topic suffix from channel name
+        if artist.endswith(' - Topic'):
+            artist = artist[:-8].strip()
+
         # Format artist and title if title contains "Artist - Title"
         if '-' in title and not info.get('artist'):
             parts = title.split('-', 1)
