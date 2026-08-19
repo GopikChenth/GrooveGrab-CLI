@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
-    {name = "GrooveGrab Developers"}
+    {name = "Gopik Chenth", email = "gopikchenth@gmail.com"}
 ]
 keywords = ["download", "music", "audio", "video", "cli", "yt-dlp", "spotify", "jiosaavn", "soundcloud", "youtube", "player", "lyrics", "visualizer"]
 classifiers = [
@@ -54,4 +54,3 @@ package-dir = {"" = "src"}
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-
